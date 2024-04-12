@@ -15,6 +15,7 @@ clang -std=c++20 ^
     src\tokenizer.cpp ^
     src\error.cpp ^
     src\expression.cpp ^
+    src\parser.cpp ^
     src\ast_printer.cpp ^
     -O0 ^
     -g ^
