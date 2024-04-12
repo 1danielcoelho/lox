@@ -15,11 +15,11 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 
 	std::stringstream stream{text};
 
-	auto add_token = [&start, &current, &line, &result, &text](TokenType type)
+	auto add_token = [&start, &current, &line, &result, &text](TokenType type, const LiteralVariantType& literal = {})
 	{
 		std::string substr = text.substr(start, current - start);
-		std::cout << "consumed token '" << substr.c_str() << "'" << std::endl;
-		result.push_back(Token{type, substr, {}, line});
+		std::cout << "consumed token '" << substr.c_str() << "' with literal '" << to_string(literal) << "'" << std::endl;
+		result.push_back(Token{type, substr, literal, line});
 	};
 
 	auto test_consume = [&stream, &current](char expected)
@@ -32,8 +32,8 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 		if (stream.peek() == expected)
 		{
 			// Fully "consume" the character
-            char ch;
-            stream.get(ch);
+			char ch;
+			stream.get(ch);
 			++current;
 			return true;
 		}
@@ -41,10 +41,39 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 		return false;
 	};
 
+	auto consume_string = [&stream, &current, &line, &text, &start, &add_token]()
+	{
+		while (stream.peek() != '"' && !stream.eof())
+		{
+			if (stream.peek() == '\n')
+			{
+				++line;
+			}
+
+			char ch;
+			stream.get(ch);
+			++current;
+		}
+
+		if (stream.eof())
+		{
+			Lox::report_error(line, "Unterminated string.");
+			return;
+		}
+
+		// Consume the closing "
+		char ch;
+		stream.get(ch);
+		++current;
+
+		std::string literal = text.substr(start + 1, current - start - 2);
+		add_token(TokenType::STRING, literal);
+	};
+
 	char ch;
 	while (stream.get(ch))
 	{
-        start = current;
+		start = current;
 		++current;
 
 		// clang-format off
@@ -101,6 +130,8 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
                 line++;
                 break;
             }
+
+            case '"': consume_string(); break;
 
             default: Lox::report_error(line, "Unexpected character '" + std::string{ch} + "' (" + std::to_string((int)ch) + ")");
 		};

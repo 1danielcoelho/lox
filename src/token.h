@@ -57,12 +57,15 @@ namespace Lox
 		EOF_
 	};
 
+	using LiteralVariantType = std::variant<nullptr_t, double, std::string>;
+	std::string to_string(const LiteralVariantType& variant);
+
 	class Token
 	{
 	public:
 		TokenType type;
 		std::string lexeme;
-		std::variant<double, std::string> object;	 // TODO: This is not going to work, what if it's a class?
+		LiteralVariantType literal;	   // TODO: This is not going to work, what if it's a class?
 		uint32_t line;
 
 	public:
