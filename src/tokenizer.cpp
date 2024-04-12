@@ -4,6 +4,7 @@
 #include <cassert>
 #include <iostream>
 #include <sstream>
+#include <unordered_map>
 
 namespace TokenizerInternal
 {
@@ -11,9 +12,40 @@ namespace TokenizerInternal
 	{
 		return c >= '0' && c <= '9';
 	}
+
+	bool is_alpha(char c)
+	{
+		return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c == '_');
+	}
+
+	bool is_alpha_numeric(char c)
+	{
+		return is_alpha(c) || is_digit(c);
+	}
+
+	// clang-format off
+	std::unordered_map<std::string, Lox::TokenType> reserved_keywords{
+        {"and",    Lox::TokenType::AND},
+        {"class",  Lox::TokenType::CLASS},
+        {"else",   Lox::TokenType::ELSE},
+        {"false",  Lox::TokenType::FALSE},
+        {"for",    Lox::TokenType::FOR},
+        {"fun",    Lox::TokenType::FUN},
+        {"if",     Lox::TokenType::IF},
+        {"nil",    Lox::TokenType::NIL},
+        {"or",     Lox::TokenType::OR},
+        {"print",  Lox::TokenType::PRINT},
+        {"return", Lox::TokenType::RETURN},
+        {"super",  Lox::TokenType::SUPER},
+        {"this",   Lox::TokenType::THIS},
+        {"true",   Lox::TokenType::TRUE},
+        {"var",    Lox::TokenType::VAR},
+        {"while",  Lox::TokenType::WHILE},
+	};
+	// clang-format on
 }
 
-std::vector<Lox::Token> Lox::tokenize(const std::string& text)
+std::vector<Lox::Token> Lox::tokenize(const std::string& source)
 {
 	using namespace TokenizerInternal;
 
@@ -23,51 +55,51 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 	uint32_t current = 0;
 	uint32_t line = 1;
 
-	auto advance = [&text, &current]() -> char
+	auto advance = [&]() -> char
 	{
-		return text[current++];
+		return source[current++];
 	};
 
-	auto is_at_end = [&current, &text]() -> bool
+	auto is_at_end = [&]() -> bool
 	{
-		return current >= text.length();
+		return current >= source.length();
 	};
 
-	auto peek = [&is_at_end, &text, &current]() -> char
+	auto peek = [&]() -> char
 	{
 		if (is_at_end())
 		{
 			return '\0';
 		}
 
-		return text[current];
+		return source[current];
 	};
 
-	auto peek_next = [&is_at_end, &text, &current]() -> char
+	auto peek_next = [&]() -> char
 	{
-		if (current + 1 >= text.length())
+		if (current + 1 >= source.length())
 		{
 			return '\0';
 		}
 
-		return text[current + 1];
+		return source[current + 1];
 	};
 
-	auto add_token = [&start, &current, &line, &result, &text](TokenType type, const LiteralVariantType& literal = {})
+	auto add_token = [&](TokenType type, const LiteralVariantType& literal = {})
 	{
-		std::string substr = text.substr(start, current - start);
-		std::cout << "consumed token '" << substr.c_str() << "' with literal '" << to_string(literal) << "'" << std::endl;
+		std::string substr = source.substr(start, current - start);
+		std::cout << "consumed token type " << (int)type << " '" << substr.c_str() << "' with literal '" << to_string(literal) << "'" << std::endl;
 		result.push_back(Token{type, substr, literal, line});
 	};
 
-	auto test_consume = [&is_at_end, &current, &text](char expected)
+	auto test_consume = [&](char expected)
 	{
 		if (is_at_end())
 		{
 			return false;
 		}
 
-		if (text[current] != expected)
+		if (source[current] != expected)
 		{
 			return false;
 		}
@@ -76,7 +108,7 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 		return true;
 	};
 
-	auto consume_string = [&text, &current, &line, &start, &add_token, &peek, &is_at_end, &advance]()
+	auto consume_string = [&]()
 	{
 		while (peek() != '"' && !is_at_end())
 		{
@@ -97,11 +129,11 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 		// Consume the closing "
 		advance();
 
-		std::string literal = text.substr(start + 1, current - start - 2);
+		std::string literal = source.substr(start + 1, current - start - 2);
 		add_token(TokenType::STRING, literal);
 	};
 
-	auto consume_number = [&text, &current, &line, &start, &add_token, &peek, &advance, &peek_next]()
+	auto consume_number = [&]()
 	{
 		while (is_digit(peek()))
 		{
@@ -119,7 +151,26 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 			}
 		}
 
-		add_token(TokenType::NUMBER, std::stof(text.substr(start, current - start)));
+		add_token(TokenType::NUMBER, std::stof(source.substr(start, current - start)));
+	};
+
+	auto consume_identifier = [&]()
+	{
+		while (is_alpha_numeric(peek()))
+		{
+			advance();
+		}
+
+		std::string text = source.substr(start, current - start);
+
+		TokenType type = TokenType::IDENTIFIER;
+		auto iter = reserved_keywords.find(text);
+		if (iter != reserved_keywords.end())
+		{
+			type = iter->second;
+		}
+
+		add_token(type);
 	};
 
 	while (!is_at_end())
@@ -187,6 +238,10 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
                 {
                     consume_number();
                 }
+                else if (is_alpha(ch))
+                {
+                    consume_identifier();
+                }
                 else
                 {
                     Lox::report_error(line, "Unexpected character '" + std::string{ch} + "' (" + std::to_string((int)ch) + ")");
@@ -198,7 +253,7 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 		// clang-format on
 	}
 
-	assert(current == text.size());
+	assert(current == source.size());
 
 	result.push_back(Token{TokenType::EOF_, "", {}, line});
 

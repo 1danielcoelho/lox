@@ -6,3 +6,5 @@
 has two lines"}
 ("")
 !!23.3>6>7777
+
+var something = 2;
