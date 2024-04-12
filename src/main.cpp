@@ -1,4 +1,6 @@
+#include "ast_printer.h"
 #include "error.h"
+#include "expression.h"
 #include "tokenizer.h"
 
 #include <filesystem>

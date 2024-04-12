@@ -14,6 +14,8 @@ clang -std=c++20 ^
     src\token.cpp ^
     src\tokenizer.cpp ^
     src\error.cpp ^
+    src\expression.cpp ^
+    src\ast_printer.cpp ^
     -O0 ^
     -g ^
     -o %BUILD_DIR%\main.exe
