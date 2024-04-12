@@ -63,6 +63,28 @@ int run_prompt()
 
 int main(int argc, char** argv)
 {
+	using namespace Lox;
+
+	std::unique_ptr<BinaryExpression> b = std::make_unique<BinaryExpression>();
+	std::unique_ptr<UnaryExpression> u = std::make_unique<UnaryExpression>();
+	std::unique_ptr<GroupingExpression> g = std::make_unique<GroupingExpression>();
+	std::unique_ptr<LiteralExpression> l1 = std::make_unique<LiteralExpression>();
+	std::unique_ptr<LiteralExpression> l2 = std::make_unique<LiteralExpression>();
+
+	l1->literal = 123.0;
+	l2->literal = 45.67;
+	u->op = Token{TokenType::MINUS, "-", nullptr, 1};
+	b->op = Token{TokenType::STAR, "*", nullptr, 1};
+
+	u->right = std::move(l1);
+	g->expr = std::move(l2);
+	b->left = std::move(u);
+	b->right = std::move(g);
+
+	Lox::ASTPrinter printer;
+	printer.visit(*b);
+	std::cout << "test: " << printer.result.value() << std::endl;
+
 	if (argc > 2)
 	{
 		std::cout << "Use one or no argument" << std::endl;

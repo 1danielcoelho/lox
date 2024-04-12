@@ -2,6 +2,8 @@
 
 #include "token.h"
 
+#include <memory>
+
 namespace Lox
 {
 	class ExpressionVisitor;
@@ -22,7 +24,7 @@ namespace Lox
 
 	struct GroupingExpression : public Expression
 	{
-		Expression expr;
+		std::unique_ptr<Expression> expr;
 
 	public:
 		virtual void accept(ExpressionVisitor& visitor) override;
@@ -31,7 +33,7 @@ namespace Lox
 	struct UnaryExpression : public Expression
 	{
 		Token op;
-		Expression right;
+		std::unique_ptr<Expression> right;
 
 	public:
 		virtual void accept(ExpressionVisitor& visitor) override;
@@ -39,9 +41,9 @@ namespace Lox
 
 	struct BinaryExpression : public Expression
 	{
-		Expression left;
+		std::unique_ptr<Expression> left;
 		Token op;
-		Expression right;
+		std::unique_ptr<Expression> right;
 
 	public:
 		virtual void accept(ExpressionVisitor& visitor) override;

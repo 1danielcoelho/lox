@@ -14,7 +14,7 @@ namespace ASTPrinterInternal
 		{
 			expr->accept(*printer_visitor);
 			assert(printer_visitor->result.has_value());
-			ss << printer_visitor->result.value();
+			ss << " " << printer_visitor->result.value();
 		}
 		ss << ")";
 
@@ -39,15 +39,15 @@ void Lox::ASTPrinter::visit(LiteralExpression& expr)
 
 void Lox::ASTPrinter::visit(GroupingExpression& expr)
 {
-	result = ASTPrinterInternal::parenthesize(this, "group", {&expr.expr});
+	result = ASTPrinterInternal::parenthesize(this, "group", {expr.expr.get()});
 }
 
 void Lox::ASTPrinter::visit(UnaryExpression& expr)
 {
-	result = ASTPrinterInternal::parenthesize(this, expr.op.lexeme, {&expr.right});
+	result = ASTPrinterInternal::parenthesize(this, expr.op.lexeme, {expr.right.get()});
 }
 
 void Lox::ASTPrinter::visit(BinaryExpression& expr)
 {
-	result = ASTPrinterInternal::parenthesize(this, expr.op.lexeme, {&expr.left, &expr.right});
+	result = ASTPrinterInternal::parenthesize(this, expr.op.lexeme, {expr.left.get(), expr.right.get()});
 }
