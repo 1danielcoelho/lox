@@ -9,7 +9,9 @@
 			"type": "cppvsdbg",
 			"request": "launch",
 			"cwd": "${workspaceRoot}",
-			"args": [],
+			"args": [
+				"F:\\Projects\\lox\\samples\\text_simple.l"
+			],
 			"internalConsoleOptions": "openOnSessionStart",
 			"console": "integratedTerminal",
 			"program": "${workspaceFolder}/build/main.exe"

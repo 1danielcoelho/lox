@@ -5,4 +5,7 @@
 #include <string>
 #include <vector>
 
-std::vector<Token> tokenize(const std::string& text);
+namespace Lox
+{
+	std::vector<Token> tokenize(const std::string& text);
+}

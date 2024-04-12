@@ -1,9 +1,11 @@
 #include "tokenizer.h"
+#include "error.h"
 
+#include <cassert>
 #include <iostream>
 #include <sstream>
 
-std::vector<Token> tokenize(const std::string& text)
+std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 {
 	std::vector<Token> result;
 
@@ -11,15 +13,39 @@ std::vector<Token> tokenize(const std::string& text)
 	uint32_t current = 0;
 	uint32_t line = 1;
 
+	std::stringstream stream{text};
+
 	auto add_token = [&start, &current, &line, &result, &text](TokenType type)
 	{
-		result.push_back(Token{type, text.substr(start, current - start), {}, line});
+		std::string substr = text.substr(start, current - start);
+		std::cout << "consumed token '" << substr.c_str() << "'" << std::endl;
+		result.push_back(Token{type, substr, {}, line});
 	};
 
-	std::stringstream stream{text};
-	while (!stream.eof())
+	auto test_consume = [&stream, &current](char expected)
 	{
-		char ch = stream.get();
+		if (stream.eof())
+		{
+			return false;
+		}
+
+		if (stream.peek() == expected)
+		{
+			// Fully "consume" the character
+            char ch;
+            stream.get(ch);
+			++current;
+			return true;
+		}
+
+		return false;
+	};
+
+	char ch;
+	while (stream.get(ch))
+	{
+        start = current;
+		++current;
 
 		// clang-format off
 		switch (ch)
@@ -35,14 +61,53 @@ std::vector<Token> tokenize(const std::string& text)
             case ';': add_token(TokenType::SEMICOLON); break;
             case '*': add_token(TokenType::STAR); break;
 
-            default: error(line, "Unexpected character '" + std::string{ch} + "'");
+            case '!': add_token(test_consume('=') ? TokenType::BANG_EQUAL : TokenType::BANG); break;
+            case '=': add_token(test_consume('=') ? TokenType::EQUAL_EQUAL : TokenType::EQUAL); break;
+            case '<': add_token(test_consume('=') ? TokenType::LESS_EQUAL : TokenType::LESS); break;
+            case '>': add_token(test_consume('=') ? TokenType::GREATER_EQUAL : TokenType::GREATER); break;
+
+            case '/':
+            {
+                // Comment goes until the end of the line
+                if (test_consume('/'))
+                {
+                    while (stream.peek() != '\n' && !stream.eof())
+                    {
+                        stream.get(ch);
+                        ++current;
+                    }
+
+                    // TODO: reset start?
+                }
+                // Division
+                else
+                {
+                    add_token(TokenType::SLASH);
+                }
+
+                break;
+            }
+
+            // Whitespace
+            case ' ':
+            case '\r':
+            case '\t':
+            {
+                break;
+            }
+
+            case '\n':
+            {
+                line++;
+                break;
+            }
+
+            default: Lox::report_error(line, "Unexpected character '" + std::string{ch} + "' (" + std::to_string((int)ch) + ")");
 		};
 		// clang-format on
-
-		++current;
-
-		std::cout << "c: '" << ch << "'" << std::endl;
 	}
+
+	assert(current == text.size());
 
 	result.push_back(Token{TokenType::EOF_, "", {}, line});
 
