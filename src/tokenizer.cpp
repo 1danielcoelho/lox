@@ -43,6 +43,16 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 		return text[current];
 	};
 
+	auto peek_next = [&is_at_end, &text, &current]() -> char
+	{
+		if (current + 1 >= text.length())
+		{
+			return '\0';
+		}
+
+		return text[current + 1];
+	};
+
 	auto add_token = [&start, &current, &line, &result, &text](TokenType type, const LiteralVariantType& literal = {})
 	{
 		std::string substr = text.substr(start, current - start);
@@ -91,32 +101,26 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 		add_token(TokenType::STRING, literal);
 	};
 
-	// auto consume_number = [&stream, &current, &line, &text, &start, &add_token]()
-	// {
-	// 	while (is_digit(stream.peek()))
-	// 	{
-	// 		char ch;
-	// 		stream.get(ch);
-	// 		++current;
-	// 	}
+	auto consume_number = [&text, &current, &line, &start, &add_token, &peek, &advance, &peek_next]()
+	{
+		while (is_digit(peek()))
+		{
+			advance();
+		}
 
-	// 	if (stream.peek() == '.' && is_digit(peek_nex()))
-	// 	{
-	// 		// Consume the .
-	// 		char ch;
-	// 		stream.get(ch);
-	// 		++current;
+		if (peek() == '.' && is_digit(peek_next()))
+		{
+			// Consume the .
+			advance();
 
-	// 		while (is_digit(stream.peek()))
-	// 		{
-	// 			char ch;
-	// 			stream.get(ch);
-	// 			++current;
-	// 		}
-	// 	}
+			while (is_digit(peek()))
+			{
+				advance();
+			}
+		}
 
-	// 	add_token(TokenType::NUMBER, std::stof(text.substr(start, current - start)));
-	// };
+		add_token(TokenType::NUMBER, std::stof(text.substr(start, current - start)));
+	};
 
 	while (!is_at_end())
 	{
@@ -181,7 +185,7 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
             {
                 if (is_digit(ch))
                 {
-                    // consume_number();
+                    consume_number();
                 }
                 else
                 {
