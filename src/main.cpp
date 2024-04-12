@@ -10,8 +10,6 @@ namespace fs = std::filesystem;
 
 int run(const std::string& source)
 {
-	std::cout << "run: " << source << std::endl;
-
 	std::vector<Lox::Token> tokens = Lox::tokenize(source);
 
 	return Lox::had_error() ? Lox::ERROR_CODE_DATAERR : Lox::ERROR_CODE_SUCCESS;
@@ -19,8 +17,6 @@ int run(const std::string& source)
 
 int run_file(const char* arg)
 {
-	std::cout << "run_file: " << arg << std::endl;
-
 	fs::path path{arg};
 	if (!fs::is_regular_file(path))
 	{
@@ -46,8 +42,6 @@ int run_file(const char* arg)
 
 int run_prompt()
 {
-	std::cout << "run_prompt" << std::endl;
-
 	std::string input;
 	while (true)
 	{

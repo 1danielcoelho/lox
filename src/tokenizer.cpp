@@ -5,15 +5,43 @@
 #include <iostream>
 #include <sstream>
 
+namespace TokenizerInternal
+{
+	bool is_digit(char c)
+	{
+		return c >= '0' && c <= '9';
+	}
+}
+
 std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 {
+	using namespace TokenizerInternal;
+
 	std::vector<Token> result;
 
 	uint32_t start = 0;
 	uint32_t current = 0;
 	uint32_t line = 1;
 
-	std::stringstream stream{text};
+	auto advance = [&text, &current]() -> char
+	{
+		return text[current++];
+	};
+
+	auto is_at_end = [&current, &text]() -> bool
+	{
+		return current >= text.length();
+	};
+
+	auto peek = [&is_at_end, &text, &current]() -> char
+	{
+		if (is_at_end())
+		{
+			return '\0';
+		}
+
+		return text[current];
+	};
 
 	auto add_token = [&start, &current, &line, &result, &text](TokenType type, const LiteralVariantType& literal = {})
 	{
@@ -22,59 +50,78 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 		result.push_back(Token{type, substr, literal, line});
 	};
 
-	auto test_consume = [&stream, &current](char expected)
+	auto test_consume = [&is_at_end, &current, &text](char expected)
 	{
-		if (stream.eof())
+		if (is_at_end())
 		{
 			return false;
 		}
 
-		if (stream.peek() == expected)
+		if (text[current] != expected)
 		{
-			// Fully "consume" the character
-			char ch;
-			stream.get(ch);
-			++current;
-			return true;
+			return false;
 		}
 
-		return false;
+		current++;
+		return true;
 	};
 
-	auto consume_string = [&stream, &current, &line, &text, &start, &add_token]()
+	auto consume_string = [&text, &current, &line, &start, &add_token, &peek, &is_at_end, &advance]()
 	{
-		while (stream.peek() != '"' && !stream.eof())
+		while (peek() != '"' && !is_at_end())
 		{
-			if (stream.peek() == '\n')
+			if (peek() == '\n')
 			{
 				++line;
 			}
 
-			char ch;
-			stream.get(ch);
-			++current;
+			advance();
 		}
 
-		if (stream.eof())
+		if (is_at_end())
 		{
 			Lox::report_error(line, "Unterminated string.");
 			return;
 		}
 
 		// Consume the closing "
-		char ch;
-		stream.get(ch);
-		++current;
+		advance();
 
 		std::string literal = text.substr(start + 1, current - start - 2);
 		add_token(TokenType::STRING, literal);
 	};
 
-	char ch;
-	while (stream.get(ch))
+	// auto consume_number = [&stream, &current, &line, &text, &start, &add_token]()
+	// {
+	// 	while (is_digit(stream.peek()))
+	// 	{
+	// 		char ch;
+	// 		stream.get(ch);
+	// 		++current;
+	// 	}
+
+	// 	if (stream.peek() == '.' && is_digit(peek_nex()))
+	// 	{
+	// 		// Consume the .
+	// 		char ch;
+	// 		stream.get(ch);
+	// 		++current;
+
+	// 		while (is_digit(stream.peek()))
+	// 		{
+	// 			char ch;
+	// 			stream.get(ch);
+	// 			++current;
+	// 		}
+	// 	}
+
+	// 	add_token(TokenType::NUMBER, std::stof(text.substr(start, current - start)));
+	// };
+
+	while (!is_at_end())
 	{
 		start = current;
-		++current;
+		char ch = advance();
 
 		// clang-format off
 		switch (ch)
@@ -100,13 +147,10 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
                 // Comment goes until the end of the line
                 if (test_consume('/'))
                 {
-                    while (stream.peek() != '\n' && !stream.eof())
+                    while (peek() != '\n' && !is_at_end())
                     {
-                        stream.get(ch);
-                        ++current;
+                        advance();
                     }
-
-                    // TODO: reset start?
                 }
                 // Division
                 else
@@ -133,7 +177,19 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& text)
 
             case '"': consume_string(); break;
 
-            default: Lox::report_error(line, "Unexpected character '" + std::string{ch} + "' (" + std::to_string((int)ch) + ")");
+            default:
+            {
+                if (is_digit(ch))
+                {
+                    // consume_number();
+                }
+                else
+                {
+                    Lox::report_error(line, "Unexpected character '" + std::string{ch} + "' (" + std::to_string((int)ch) + ")");
+                }
+
+                break;
+            }
 		};
 		// clang-format on
 	}
