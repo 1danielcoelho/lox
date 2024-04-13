@@ -27,6 +27,7 @@ pushd %BUILD_DIR%
 @echo Compiling with MSVC
 cl  ..\src\unity.cpp ^
     /std:c++20 ^
+    /nologo ^
     /EHsc ^
     /W4 /diagnostics:caret^
     /Od /Ob0 /DEBUG /Zi ^
