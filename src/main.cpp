@@ -1,6 +1,7 @@
 #include "ast_printer.h"
 #include "error.h"
 #include "expression.h"
+#include "parser.h"
 #include "tokenizer.h"
 
 #include <filesystem>
@@ -13,6 +14,19 @@ namespace fs = std::filesystem;
 int run(const std::string& source)
 {
 	std::vector<Lox::Token> tokens = Lox::tokenize(source);
+	std::unique_ptr<Lox::Expression> expression = Lox::parse(tokens);
+
+	if (Lox::had_error())
+	{
+		return Lox::ERROR_CODE_DATAERR;
+	}
+	else
+	{
+		Lox::ASTPrinter printer;
+		printer.visit(*expression);
+
+		std::cout << printer.result.value() << std::endl;
+	}
 
 	return Lox::had_error() ? Lox::ERROR_CODE_DATAERR : Lox::ERROR_CODE_SUCCESS;
 }

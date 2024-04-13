@@ -4,6 +4,8 @@
 
 namespace Lox
 {
+	struct Token;
+
 	enum ErrorCodes
 	{
 		ERROR_CODE_SUCCESS = 0,
@@ -14,6 +16,7 @@ namespace Lox
 	};
 
 	void report_error(int line, const std::string& message);
+	void report_error(const Token& token, const std::string& message);
 	bool had_error();
 	void clear_error();
 }

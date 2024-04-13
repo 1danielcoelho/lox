@@ -22,5 +22,5 @@ clang -std=c++20 ^
     -o %BUILD_DIR%\main.exe
 
 @echo Running
-@REM %BUILD_DIR%\main.exe
-%BUILD_DIR%\main.exe F:\Projects\lox\samples\text_simple.l
+%BUILD_DIR%\main.exe
+@REM %BUILD_DIR%\main.exe F:\Projects\lox\samples\text_simple.l

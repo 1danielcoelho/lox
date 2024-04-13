@@ -57,7 +57,7 @@ namespace Lox
 		EOF_
 	};
 
-	using LiteralVariantType = std::variant<nullptr_t, double, std::string>;
+	using LiteralVariantType = std::variant<nullptr_t, double, bool, std::string>;
 	std::string to_string(const LiteralVariantType& variant);
 
 	class Token
