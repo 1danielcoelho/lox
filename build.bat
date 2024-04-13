@@ -5,10 +5,10 @@ setlocal
 
 set BUILD_DIR=%~dp0build\
 
-@echo Clearing previous executable
-if exist %BUILD_DIR%\main.exe (
-    del %BUILD_DIR%\main.exe
-)
+@REM @echo Clearing previous executable
+@REM if exist %BUILD_DIR%\main.exe (
+@REM     del %BUILD_DIR%\main.exe
+@REM )
 
 @echo Setting up build directory
 if not exist %BUILD_DIR%\ (
