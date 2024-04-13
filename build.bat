@@ -1,9 +1,16 @@
 @echo off
-setlocal
 CALL "%~dp0setup_for_dev.bat"
 
-@echo Setting up build directory
+setlocal
+
 set BUILD_DIR=%~dp0build\
+
+@echo Clearing previous executable
+if exist %BUILD_DIR%\main.exe (
+    del %BUILD_DIR%\main.exe
+)
+
+@echo Setting up build directory
 if not exist %BUILD_DIR%\ (
     mkdir %BUILD_DIR%
 )
@@ -22,7 +29,7 @@ cl  ..\src\unity.cpp ^
     /std:c++20 ^
     /EHsc ^
     /W4 /diagnostics:caret^
-    /Od /Ob0 /DEBUG ^
+    /Od /Ob0 /DEBUG /Zi ^
     /Fe: main.exe
 
 @echo Running
