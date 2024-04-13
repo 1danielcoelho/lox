@@ -18,7 +18,7 @@ std::string Lox::to_string(const Lox::LiteralVariantType& variant)
 		{
 			return b ? "true" : "false";
 		}
-		std::string operator()(nullptr_t n)
+		std::string operator()([[maybe_unused]] nullptr_t n)
 		{
 			return "";
 		}

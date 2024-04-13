@@ -4,7 +4,7 @@
 
 namespace Lox
 {
-	struct Token;
+	class Token;
 
 	enum ErrorCodes
 	{

@@ -14,7 +14,7 @@ void Lox::report_error(int line, const std::string& message)
 	ErrorInternal::had_error = true;
 }
 
-void Lox::report_error(const Token& token, const std::string& message)
+void Lox::report_error(const Lox::Token& token, const std::string& message)
 {
 	if (token.type == TokenType::EOF_)
 	{

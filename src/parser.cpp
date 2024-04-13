@@ -175,8 +175,6 @@ namespace ParserInternal
 			}
 
 			throw create_error(peek(), "Expected an expression.");
-
-			return nullptr;
 		}
 
 		std::unique_ptr<Expression> parse_unary()
