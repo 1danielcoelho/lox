@@ -1,8 +1,9 @@
 #pragma once
 
+#include "object.h"
+
 #include <stdint.h>
 #include <string>
-#include <variant>
 
 namespace Lox
 {
@@ -57,15 +58,12 @@ namespace Lox
 		EOF_
 	};
 
-	using LiteralVariantType = std::variant<std::nullptr_t, double, bool, std::string>;
-	std::string to_string(const LiteralVariantType& variant);
-
 	class Token
 	{
 	public:
 		TokenType type;
 		std::string lexeme;
-		LiteralVariantType literal;	   // TODO: This is not going to work, what if it's a class?
+		Object literal;	   // TODO: This is not going to work, what if it's a class?
 		uint32_t line;
 
 	public:

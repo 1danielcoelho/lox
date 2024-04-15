@@ -16,7 +16,7 @@ namespace Lox
 
 	struct LiteralExpression : public Expression
 	{
-		LiteralVariantType literal;
+		Object literal;
 
 	public:
 		virtual void accept(ExpressionVisitor& visitor) override;

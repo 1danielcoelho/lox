@@ -1,5 +1,7 @@
 #include "ast_printer.cpp"
 #include "error.cpp"
+#include "object.cpp"
+#include "interpreter.cpp"
 #include "expression.cpp"
 #include "main.cpp"
 #include "parser.cpp"
