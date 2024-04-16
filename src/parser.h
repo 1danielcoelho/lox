@@ -1,6 +1,6 @@
 #pragma once
 
-#include "expression.h"
+#include "statement.h"
 #include "token.h"
 
 #include <memory>
@@ -8,5 +8,5 @@
 
 namespace Lox
 {
-	std::unique_ptr<Expression> parse(const std::vector<Token>& tokens);
+	std::vector<Statement> parse(const std::vector<Token>& tokens);
 }

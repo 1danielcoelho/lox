@@ -20,17 +20,15 @@ namespace ParserInternal
 		{
 		}
 
-		std::unique_ptr<Lox::Expression> parse()
+		std::vector<Lox::Statement> parse()
 		{
-			try
+			std::vector<Lox::Statement> statements;
+			while (!is_at_end())
 			{
-				return parse_expression();
+				statements.push_back(parse_statement());
 			}
-			// TODO: This is inconsistent with the interpreter: Why not report the error only here instaed of within create_error?
-			catch ([[maybe_unused]] const ParseError& e)
-			{
-				return nullptr;
-			}
+
+			return statements;
 		}
 
 	private:
@@ -259,10 +257,25 @@ namespace ParserInternal
 		{
 			return parse_equality();
 		};
+
+		Statement parse_print_statement()
+		{
+
+		}
+
+		Statement parse_statement()
+		{
+			if (advance_for_token_types({TokenType::PRINT}))
+			{
+				return parse_print_statement();
+			}
+
+			return parse_expression_statement();
+		}
 	};
 };	  // namespace ParserInternal
 
-std::unique_ptr<Lox::Expression> Lox::parse(const std::vector<Lox::Token>& tokens)
+std::vector<Lox::Statement> Lox::parse(const std::vector<Lox::Token>& tokens)
 {
 	ParserInternal::Parser parser{tokens};
 	return parser.parse();
