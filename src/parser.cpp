@@ -7,10 +7,6 @@ namespace ParserInternal
 {
 	using namespace Lox;
 
-	class ParseException
-	{
-	};
-
 	class Parser
 	{
 	public:
@@ -30,7 +26,8 @@ namespace ParserInternal
 			{
 				return parse_expression();
 			}
-			catch (const ParseException& e)
+			// TODO: This is inconsistent with the interpreter: Why not report the error only here instaed of within create_error?
+			catch ([[maybe_unused]] const ParseError& e)
 			{
 				return nullptr;
 			}
@@ -85,10 +82,10 @@ namespace ParserInternal
 			return false;
 		};
 
-		ParseException create_error(const Token& token, const std::string& error_message)
+		ParseError create_error(const Token& token, const std::string& error_message)
 		{
 			Lox::report_error(token, error_message);
-			return ParseException();
+			return ParseError();
 		}
 
 		std::optional<const Token*> advance_for_token_type_checked(TokenType type, const std::string& error_message)

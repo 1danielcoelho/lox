@@ -1,6 +1,7 @@
 #include "ast_printer.h"
 #include "error.h"
 #include "expression.h"
+#include "interpreter.h"
 #include "parser.h"
 #include "tokenizer.h"
 
@@ -15,20 +16,23 @@ int run(const std::string& source)
 {
 	std::vector<Lox::Token> tokens = Lox::tokenize(source);
 	std::unique_ptr<Lox::Expression> expression = Lox::parse(tokens);
+	if (Lox::had_error())
+	{
+		return Lox::ERROR_CODE_DATAERR;
+	}
+
+	static Lox::Interpreter interpreter;
+	interpreter.interpret(*expression);
 
 	if (Lox::had_error())
 	{
 		return Lox::ERROR_CODE_DATAERR;
 	}
-	else
+	else if (Lox::had_runtime_error())
 	{
-		Lox::ASTPrinter printer;
-		printer.visit(*expression);
-
-		std::cout << printer.result.value() << std::endl;
+		return Lox::ERROR_CODE_SOFTWARE;
 	}
-
-	return Lox::had_error() ? Lox::ERROR_CODE_DATAERR : Lox::ERROR_CODE_SUCCESS;
+	return Lox::ERROR_CODE_SUCCESS;
 }
 
 int run_file(const char* arg)
@@ -81,7 +85,6 @@ int main(int argc, char** argv)
 	{
 		std::cout << "Use one or no argument" << std::endl;
 
-		// Wrong usage error code: https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html
 		return Lox::ERROR_CODE_USAGE;
 	}
 	else if (argc == 2)
