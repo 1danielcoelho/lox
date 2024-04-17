@@ -20,9 +20,9 @@ namespace ParserInternal
 		{
 		}
 
-		std::vector<Lox::Statement> parse()
+		std::vector<std::unique_ptr<Lox::Statement>> parse()
 		{
-			std::vector<Lox::Statement> statements;
+			std::vector<std::unique_ptr<Lox::Statement>> statements;
 			while (!is_at_end())
 			{
 				statements.push_back(parse_statement());
@@ -258,12 +258,27 @@ namespace ParserInternal
 			return parse_equality();
 		};
 
-		Statement parse_print_statement()
+		std::unique_ptr<Statement> parse_print_statement()
 		{
+			std::unique_ptr<Expression> expr = parse_expression();
+			advance_for_token_type_checked(TokenType::SEMICOLON, "Expected a ';' after value.");
 
+			std::unique_ptr<PrintStatement> statement = std::make_unique<PrintStatement>();
+			statement->expression = std::move(expr);
+			return statement;
 		}
 
-		Statement parse_statement()
+		std::unique_ptr<Statement> parse_expression_statement()
+		{
+			std::unique_ptr<Expression> expr = parse_expression();
+			advance_for_token_type_checked(TokenType::SEMICOLON, "Expected a ';' after expression.");
+
+			std::unique_ptr<ExpressionStatement> statement = std::make_unique<ExpressionStatement>();
+			statement->expression = std::move(expr);
+			return statement;
+		}
+
+		std::unique_ptr<Statement> parse_statement()
 		{
 			if (advance_for_token_types({TokenType::PRINT}))
 			{
@@ -275,7 +290,7 @@ namespace ParserInternal
 	};
 };	  // namespace ParserInternal
 
-std::vector<Lox::Statement> Lox::parse(const std::vector<Lox::Token>& tokens)
+std::vector<std::unique_ptr<Lox::Statement>> Lox::parse(const std::vector<Lox::Token>& tokens)
 {
 	ParserInternal::Parser parser{tokens};
 	return parser.parse();

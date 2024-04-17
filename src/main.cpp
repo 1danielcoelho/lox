@@ -15,14 +15,14 @@ namespace fs = std::filesystem;
 int run(const std::string& source)
 {
 	std::vector<Lox::Token> tokens = Lox::tokenize(source);
-	std::unique_ptr<Lox::Expression> expression = Lox::parse(tokens);
+	std::vector<std::unique_ptr<Lox::Statement>> statements = Lox::parse(tokens);
 	if (Lox::had_error())
 	{
 		return Lox::ERROR_CODE_DATAERR;
 	}
 
 	static Lox::Interpreter interpreter;
-	interpreter.interpret(*expression);
+	interpreter.interpret(statements);
 
 	if (Lox::had_error())
 	{

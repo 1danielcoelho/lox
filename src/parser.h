@@ -8,5 +8,5 @@
 
 namespace Lox
 {
-	std::vector<Statement> parse(const std::vector<Token>& tokens);
+	std::vector<std::unique_ptr<Statement>> parse(const std::vector<Token>& tokens);
 }

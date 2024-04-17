@@ -17,6 +17,11 @@ namespace InterpreterInternal
 		return interpreter_visitor->result.value();
 	}
 
+	void execute(Interpreter* interpreter_visitor, Statement& statement)
+	{
+		statement.accept(*interpreter_visitor);
+	}
+
 	bool is_truthy(const Object& obj)
 	{
 		if (std::holds_alternative<std::nullptr_t>(obj))
@@ -53,14 +58,16 @@ namespace InterpreterInternal
 	}
 }	 // namespace InterpreterInternal
 
-void Lox::Interpreter::interpret(Lox::Expression& expr)
+void Lox::Interpreter::interpret(const std::vector<std::unique_ptr<Statement>>& statements)
 {
 	using namespace InterpreterInternal;
 
 	try
 	{
-		Object value = evaluate(this, expr);
-		std::cout << "interpreted '" << Lox::to_string(*result) << "'" << std::endl;
+		for (const std::unique_ptr<Statement>& statement : statements)
+		{
+			execute(this, *statement);
+		}
 	}
 	catch (const RuntimeError& e)
 	{
@@ -75,7 +82,7 @@ void Lox::Interpreter::visit(Expression& expr)
 
 void Lox::Interpreter::visit(LiteralExpression& expr)
 {
-	// I don't think any of this works because I'm reusing the same 'result' member over and over...
+	// TODO: I don't think any of this works because I'm reusing the same 'result' member over and over...
 	result = expr.literal;
 }
 
@@ -195,4 +202,20 @@ void Lox::Interpreter::visit(BinaryExpression& expr)
 			break;
 		}
 	}
+}
+
+void Lox::Interpreter::visit(Statement& statement)
+{
+	statement.accept(*this);
+}
+
+void Lox::Interpreter::visit(ExpressionStatement& statement)
+{
+	InterpreterInternal::evaluate(this, *statement.expression);
+}
+
+void Lox::Interpreter::visit(PrintStatement& statement)
+{
+	InterpreterInternal::evaluate(this, *statement.expression);
+	std::cout << Lox::to_string(*result) << std::endl;
 }

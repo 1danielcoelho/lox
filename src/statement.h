@@ -17,7 +17,7 @@ namespace Lox
 
 	struct ExpressionStatement : public Statement
 	{
-		Expression expression;
+		std::unique_ptr<Expression> expression;
 
 	public:
 		virtual void accept(StatementVisitor& visitor) override;
@@ -25,7 +25,7 @@ namespace Lox
 
 	struct PrintStatement : public Statement
 	{
-		Expression expression;
+		std::unique_ptr<Expression> expression;
 
 	public:
 		virtual void accept(StatementVisitor& visitor) override;

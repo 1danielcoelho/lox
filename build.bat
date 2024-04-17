@@ -29,8 +29,8 @@ cl  ..\src\unity.cpp ^
     /Fe: main.exe
 
 @echo Running
-main.exe
-@REM main.exe F:\Projects\lox\samples\text_simple.l
+@REM main.exe
+main.exe F:\Projects\lox\samples\basic.l
 
 popd
 endlocal

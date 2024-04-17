@@ -14,4 +14,3 @@ void Lox::PrintStatement::accept(StatementVisitor& visitor)
 {
 	visitor.visit(*this);
 }
-
