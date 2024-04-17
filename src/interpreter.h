@@ -17,17 +17,14 @@ namespace Lox
 		, public StatementVisitor
 	{
 	public:
-		std::optional<Object> result;
-
-	public:
 		void interpret(const std::vector<std::unique_ptr<Statement>>& statements);
 
 	public:
-		virtual void visit(Expression& expr) override;
-		virtual void visit(LiteralExpression& expr) override;
-		virtual void visit(GroupingExpression& expr) override;
-		virtual void visit(UnaryExpression& expr) override;
-		virtual void visit(BinaryExpression& expr) override;
+		virtual std::optional<Object> visit(Expression& expr) override;
+		virtual std::optional<Object> visit(LiteralExpression& expr) override;
+		virtual std::optional<Object> visit(GroupingExpression& expr) override;
+		virtual std::optional<Object> visit(UnaryExpression& expr) override;
+		virtual std::optional<Object> visit(BinaryExpression& expr) override;
 
 		virtual void visit(Statement& statement) override;
 		virtual void visit(ExpressionStatement& statement) override;

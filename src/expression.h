@@ -3,6 +3,7 @@
 #include "token.h"
 
 #include <memory>
+#include <optional>
 
 namespace Lox
 {
@@ -11,7 +12,7 @@ namespace Lox
 	struct Expression
 	{
 		virtual ~Expression(){};
-		virtual void accept(ExpressionVisitor& visitor);
+		virtual std::optional<Object> accept(ExpressionVisitor& visitor);
 	};
 
 	struct LiteralExpression : public Expression
@@ -19,7 +20,7 @@ namespace Lox
 		Object literal;
 
 	public:
-		virtual void accept(ExpressionVisitor& visitor) override;
+		virtual std::optional<Object> accept(ExpressionVisitor& visitor) override;
 	};
 
 	struct GroupingExpression : public Expression
@@ -27,7 +28,7 @@ namespace Lox
 		std::unique_ptr<Expression> expr;
 
 	public:
-		virtual void accept(ExpressionVisitor& visitor) override;
+		virtual std::optional<Object> accept(ExpressionVisitor& visitor) override;
 	};
 
 	struct UnaryExpression : public Expression
@@ -36,7 +37,7 @@ namespace Lox
 		std::unique_ptr<Expression> right;
 
 	public:
-		virtual void accept(ExpressionVisitor& visitor) override;
+		virtual std::optional<Object> accept(ExpressionVisitor& visitor) override;
 	};
 
 	struct BinaryExpression : public Expression
@@ -46,16 +47,20 @@ namespace Lox
 		std::unique_ptr<Expression> right;
 
 	public:
-		virtual void accept(ExpressionVisitor& visitor) override;
+		virtual std::optional<Object> accept(ExpressionVisitor& visitor) override;
 	};
 
+	// TODO: We can't have templated virtual methods so we have a separate interface
+	// depending on the return type.
+	// Likely could be better but I'm not sure where the book is going with these just
+	// yet
 	class ExpressionVisitor
 	{
 	public:
-		virtual void visit(Expression& expr) = 0;
-		virtual void visit(LiteralExpression& expr) = 0;
-		virtual void visit(GroupingExpression& expr) = 0;
-		virtual void visit(UnaryExpression& expr) = 0;
-		virtual void visit(BinaryExpression& expr) = 0;
+		virtual std::optional<Object> visit(Expression& expr) = 0;
+		virtual std::optional<Object> visit(LiteralExpression& expr) = 0;
+		virtual std::optional<Object> visit(GroupingExpression& expr) = 0;
+		virtual std::optional<Object> visit(UnaryExpression& expr) = 0;
+		virtual std::optional<Object> visit(BinaryExpression& expr) = 0;
 	};
 }	 // namespace Lox

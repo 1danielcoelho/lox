@@ -1,26 +1,26 @@
 #include "expression.h"
 
-void Lox::Expression::accept(ExpressionVisitor& visitor)
+std::optional<Lox::Object> Lox::Expression::accept(ExpressionVisitor& visitor)
 {
-	visitor.visit(*this);
+	return visitor.visit(*this);
 }
 
-void Lox::LiteralExpression::accept(ExpressionVisitor& visitor)
+std::optional<Lox::Object> Lox::LiteralExpression::accept(ExpressionVisitor& visitor)
 {
-	visitor.visit(*this);
+	return visitor.visit(*this);
 }
 
-void Lox::GroupingExpression::accept(ExpressionVisitor& visitor)
+std::optional<Lox::Object> Lox::GroupingExpression::accept(ExpressionVisitor& visitor)
 {
-	visitor.visit(*this);
+	return visitor.visit(*this);
 }
 
-void Lox::UnaryExpression::accept(ExpressionVisitor& visitor)
+std::optional<Lox::Object> Lox::UnaryExpression::accept(ExpressionVisitor& visitor)
 {
-	visitor.visit(*this);
+	return visitor.visit(*this);
 }
 
-void Lox::BinaryExpression::accept(ExpressionVisitor& visitor)
+std::optional<Lox::Object> Lox::BinaryExpression::accept(ExpressionVisitor& visitor)
 {
-	visitor.visit(*this);
+	return visitor.visit(*this);
 }

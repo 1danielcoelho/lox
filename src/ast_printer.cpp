@@ -12,9 +12,8 @@ namespace ASTPrinterInternal
 		ss << "(" << name;
 		for (Lox::Expression* expr : expressions)
 		{
-			expr->accept(*printer_visitor);
-			assert(printer_visitor->result.has_value());
-			ss << " " << printer_visitor->result.value();
+			std::optional<Lox::Object> result = expr->accept(*printer_visitor);
+			ss << " " << std::get<std::string>(result.value());
 		}
 		ss << ")";
 
@@ -22,32 +21,33 @@ namespace ASTPrinterInternal
 	}
 }
 
-void Lox::ASTPrinter::visit(Expression& expr)
+std::optional<Lox::Object> Lox::ASTPrinter::visit(Expression& expr)
 {
 	expr.accept(*this);
+	return {};
 }
 
-void Lox::ASTPrinter::visit(LiteralExpression& expr)
+std::optional<Lox::Object> Lox::ASTPrinter::visit(LiteralExpression& expr)
 {
 	if (std::holds_alternative<nullptr_t>(expr.literal))
 	{
-		result = "nil";
+		return "nil";
 	}
 
-	result = to_string(expr.literal);
+	return to_string(expr.literal);
 }
 
-void Lox::ASTPrinter::visit(GroupingExpression& expr)
+std::optional<Lox::Object> Lox::ASTPrinter::visit(GroupingExpression& expr)
 {
-	result = ASTPrinterInternal::parenthesize(this, "group", {expr.expr.get()});
+	return ASTPrinterInternal::parenthesize(this, "group", {expr.expr.get()});
 }
 
-void Lox::ASTPrinter::visit(UnaryExpression& expr)
+std::optional<Lox::Object> Lox::ASTPrinter::visit(UnaryExpression& expr)
 {
-	result = ASTPrinterInternal::parenthesize(this, expr.op.lexeme, {expr.right.get()});
+	return ASTPrinterInternal::parenthesize(this, expr.op.lexeme, {expr.right.get()});
 }
 
-void Lox::ASTPrinter::visit(BinaryExpression& expr)
+std::optional<Lox::Object> Lox::ASTPrinter::visit(BinaryExpression& expr)
 {
-	result = ASTPrinterInternal::parenthesize(this, expr.op.lexeme, {expr.left.get(), expr.right.get()});
+	return ASTPrinterInternal::parenthesize(this, expr.op.lexeme, {expr.left.get(), expr.right.get()});
 }

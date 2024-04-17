@@ -11,10 +11,9 @@ namespace InterpreterInternal
 {
 	using namespace Lox;
 
-	Object evaluate(Interpreter* interpreter_visitor, Expression& expr)
+	std::optional<Object> evaluate(Interpreter* interpreter_visitor, Expression& expr)
 	{
-		expr.accept(*interpreter_visitor);
-		return interpreter_visitor->result.value();
+		return expr.accept(*interpreter_visitor);
 	}
 
 	void execute(Interpreter* interpreter_visitor, Statement& statement)
@@ -75,85 +74,87 @@ void Lox::Interpreter::interpret(const std::vector<std::unique_ptr<Statement>>& 
 	}
 }
 
-void Lox::Interpreter::visit(Expression& expr)
+std::optional<Lox::Object> Lox::Interpreter::visit(Expression& expr)
 {
-	expr.accept(*this);
+	return expr.accept(*this);
 }
 
-void Lox::Interpreter::visit(LiteralExpression& expr)
+std::optional<Lox::Object> Lox::Interpreter::visit(LiteralExpression& expr)
 {
-	// TODO: I don't think any of this works because I'm reusing the same 'result' member over and over...
-	result = expr.literal;
+	return expr.literal;
 }
 
-void Lox::Interpreter::visit(GroupingExpression& expr)
+std::optional<Lox::Object> Lox::Interpreter::visit(GroupingExpression& expr)
 {
-	result = InterpreterInternal::evaluate(this, *expr.expr);
+	return InterpreterInternal::evaluate(this, *expr.expr);
 }
 
-void Lox::Interpreter::visit(UnaryExpression& expr)
+std::optional<Lox::Object> Lox::Interpreter::visit(UnaryExpression& expr)
 {
 	using namespace InterpreterInternal;
 
-	Object right = evaluate(this, *expr.right);
+	std::optional<Object> right = evaluate(this, *expr.right);
 
 	switch (expr.op.type)
 	{
 		case TokenType::MINUS:
 		{
-			check_number_operand(expr.op, right);
-			result = -std::get<double>(right);
+			check_number_operand(expr.op, right.value());
+			return -std::get<double>(right.value());
 			break;
 		}
 		case TokenType::BANG:
 		{
-			result = !is_truthy(right);
+			return !is_truthy(right.value());
 			break;
 		}
 		default:
 		{
 			assert(false);
+			return {};
 			break;
 		}
 	}
 }
 
-void Lox::Interpreter::visit(BinaryExpression& expr)
+std::optional<Lox::Object> Lox::Interpreter::visit(BinaryExpression& expr)
 {
 	using namespace InterpreterInternal;
 
-	Object left = evaluate(this, *expr.left);
-	Object right = evaluate(this, *expr.right);
+	std::optional<Object> left_optional = evaluate(this, *expr.left);
+	std::optional<Object> right_optional = evaluate(this, *expr.right);
+	Object& left = left_optional.value();
+	Object& right = right_optional.value();
 
 	switch (expr.op.type)
 	{
 		case TokenType::MINUS:
 		{
 			check_number_operands(expr.op, left, right);
-			result = std::get<double>(left) - std::get<double>(right);
+			return std::get<double>(left) - std::get<double>(right);
 			break;
 		}
 		case TokenType::SLASH:
 		{
 			check_number_operands(expr.op, left, right);
-			result = std::get<double>(left) / std::get<double>(right);
+			return std::get<double>(left) / std::get<double>(right);
 			break;
 		}
 		case TokenType::STAR:
 		{
 			check_number_operands(expr.op, left, right);
-			result = std::get<double>(left) * std::get<double>(right);
+			return std::get<double>(left) * std::get<double>(right);
 			break;
 		}
 		case TokenType::PLUS:
 		{
 			if (std::holds_alternative<double>(left) && std::holds_alternative<double>(right))
 			{
-				result = std::get<double>(left) + std::get<double>(right);
+				return std::get<double>(left) + std::get<double>(right);
 			}
 			else if (std::holds_alternative<std::string>(left) && std::holds_alternative<std::string>(right))
 			{
-				result = std::get<std::string>(left) + std::get<std::string>(right);
+				return std::get<std::string>(left) + std::get<std::string>(right);
 			}
 			else
 			{
@@ -164,41 +165,42 @@ void Lox::Interpreter::visit(BinaryExpression& expr)
 		case TokenType::GREATER:
 		{
 			check_number_operands(expr.op, left, right);
-			result = std::get<double>(left) > std::get<double>(right);
+			return std::get<double>(left) > std::get<double>(right);
 			break;
 		}
 		case TokenType::GREATER_EQUAL:
 		{
 			check_number_operands(expr.op, left, right);
-			result = std::get<double>(left) >= std::get<double>(right);
+			return std::get<double>(left) >= std::get<double>(right);
 			break;
 		}
 		case TokenType::LESS:
 		{
 			check_number_operands(expr.op, left, right);
-			result = std::get<double>(left) < std::get<double>(right);
+			return std::get<double>(left) < std::get<double>(right);
 			break;
 		}
 		case TokenType::LESS_EQUAL:
 		{
 			check_number_operands(expr.op, left, right);
-			result = std::get<double>(left) <= std::get<double>(right);
+			return std::get<double>(left) <= std::get<double>(right);
 			break;
 		}
 		case TokenType::BANG_EQUAL:
 		{
 			// TODO: Do these work?
-			result = (left != right);
+			return (left != right);
 			break;
 		}
 		case TokenType::EQUAL_EQUAL:
 		{
-			result = (left == right);
+			return (left == right);
 			break;
 		}
 		default:
 		{
 			assert(false);
+			return {};
 			break;
 		}
 	}
@@ -211,11 +213,12 @@ void Lox::Interpreter::visit(Statement& statement)
 
 void Lox::Interpreter::visit(ExpressionStatement& statement)
 {
+	// We don't do anything with the result here, that's the whole point
 	InterpreterInternal::evaluate(this, *statement.expression);
 }
 
 void Lox::Interpreter::visit(PrintStatement& statement)
 {
-	InterpreterInternal::evaluate(this, *statement.expression);
-	std::cout << Lox::to_string(*result) << std::endl;
+	std::optional<Object> result = InterpreterInternal::evaluate(this, *statement.expression);
+	std::cout << Lox::to_string(result.value()) << std::endl;
 }
