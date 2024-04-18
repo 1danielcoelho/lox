@@ -1,5 +1,6 @@
 #pragma once
 
+#include "environment.h"
 #include "expression.h"
 #include "object.h"
 #include "statement.h"
@@ -16,6 +17,8 @@ namespace Lox
 		: public ExpressionVisitor
 		, public StatementVisitor
 	{
+		Environment environment;
+
 	public:
 		void interpret(const std::vector<std::unique_ptr<Statement>>& statements);
 
@@ -25,9 +28,11 @@ namespace Lox
 		virtual std::optional<Object> visit(GroupingExpression& expr) override;
 		virtual std::optional<Object> visit(UnaryExpression& expr) override;
 		virtual std::optional<Object> visit(BinaryExpression& expr) override;
+		virtual std::optional<Object> visit(VariableExpression& expr) override;
 
 		virtual void visit(Statement& statement) override;
 		virtual void visit(ExpressionStatement& statement) override;
 		virtual void visit(PrintStatement& statement) override;
+		virtual void visit(VariableDeclarationStatement& statement) override;
 	};
 }

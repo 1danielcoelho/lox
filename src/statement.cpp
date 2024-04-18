@@ -14,3 +14,8 @@ void Lox::PrintStatement::accept(StatementVisitor& visitor)
 {
 	visitor.visit(*this);
 }
+
+void Lox::VariableDeclarationStatement::accept(StatementVisitor& visitor)
+{
+	visitor.visit(*this);
+}

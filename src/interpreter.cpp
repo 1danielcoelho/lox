@@ -206,6 +206,11 @@ std::optional<Lox::Object> Lox::Interpreter::visit(BinaryExpression& expr)
 	}
 }
 
+std::optional<Lox::Object> Lox::Interpreter::visit(VariableExpression& expr)
+{
+	return environment.get_variable(expr.name);
+}
+
 void Lox::Interpreter::visit(Statement& statement)
 {
 	statement.accept(*this);
@@ -221,4 +226,15 @@ void Lox::Interpreter::visit(PrintStatement& statement)
 {
 	std::optional<Object> result = InterpreterInternal::evaluate(this, *statement.expression);
 	std::cout << Lox::to_string(result.value()) << std::endl;
+}
+
+void Lox::Interpreter::visit(VariableDeclarationStatement& statement)
+{
+	Lox::Object value = {nullptr};
+	if (statement.initializer)
+	{
+		value = InterpreterInternal::evaluate(this, *statement.initializer).value();
+	}
+
+	environment.define_variable(statement.name.lexeme, value);
 }

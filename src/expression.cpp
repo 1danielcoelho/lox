@@ -24,3 +24,8 @@ std::optional<Lox::Object> Lox::BinaryExpression::accept(ExpressionVisitor& visi
 {
 	return visitor.visit(*this);
 }
+
+std::optional<Lox::Object> Lox::VariableExpression::accept(ExpressionVisitor& visitor)
+{
+	return visitor.visit(*this);
+}

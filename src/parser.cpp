@@ -25,7 +25,7 @@ namespace ParserInternal
 			std::vector<std::unique_ptr<Lox::Statement>> statements;
 			while (!is_at_end())
 			{
-				statements.push_back(parse_statement());
+				statements.push_back(parse_declaration());
 			}
 
 			return statements;
@@ -169,6 +169,13 @@ namespace ParserInternal
 				return new_expr;
 			}
 
+			if (advance_for_token_types({TokenType::IDENTIFIER}))
+			{
+				std::unique_ptr<VariableExpression> new_expr = std::make_unique<VariableExpression>();
+				new_expr->name = previous();
+				return new_expr;
+			}
+
 			throw create_error(peek(), "Expected an expression.");
 		}
 
@@ -286,6 +293,42 @@ namespace ParserInternal
 			}
 
 			return parse_expression_statement();
+		}
+
+		std::unique_ptr<Statement> parse_var_declaration()
+		{
+			std::optional<const Token*> name = advance_for_token_type_checked(TokenType::IDENTIFIER, "Expected a variable name");
+
+			std::unique_ptr<Expression> initializer;
+			if (advance_for_token_types({TokenType::EQUAL}))
+			{
+				initializer = parse_expression();
+			}
+
+			advance_for_token_type_checked(TokenType::SEMICOLON, "Expected a ';' after variable declaration");
+
+			std::unique_ptr<VariableDeclarationStatement> statement = std::make_unique<VariableDeclarationStatement>();
+			statement->name = *name.value();
+			statement->initializer = std::move(initializer);
+			return statement;
+		}
+
+		std::unique_ptr<Statement> parse_declaration()
+		{
+			try
+			{
+				if (advance_for_token_types({TokenType::VAR}))
+				{
+					return parse_var_declaration();
+				}
+
+				return parse_statement();
+			}
+			catch ([[maybe_unused]] const Lox::ParseError& e)
+			{
+				discard_tokens_until_next_statement();
+				return {};
+			}
 		}
 	};
 };	  // namespace ParserInternal
