@@ -7,7 +7,7 @@
 
 namespace Lox
 {
-    class Token;
+	class Token;
 
 	class Environment
 	{
@@ -16,5 +16,6 @@ namespace Lox
 	public:
 		void define_variable(const std::string& name, const Lox::Object& value);
 		const Lox::Object& get_variable(const Lox::Token& token);
+		void assign_variable(const Lox::Token& token, const Lox::Object& value);
 	};
 }

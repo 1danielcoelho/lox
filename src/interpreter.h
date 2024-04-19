@@ -29,6 +29,7 @@ namespace Lox
 		virtual std::optional<Object> visit(UnaryExpression& expr) override;
 		virtual std::optional<Object> visit(BinaryExpression& expr) override;
 		virtual std::optional<Object> visit(VariableExpression& expr) override;
+		virtual std::optional<Object> visit(AssignmentExpression& expr) override;
 
 		virtual void visit(Statement& statement) override;
 		virtual void visit(ExpressionStatement& statement) override;

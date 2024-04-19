@@ -241,7 +241,7 @@ namespace ParserInternal
 			}
 
 			return expr;
-		};
+		}
 
 		std::unique_ptr<Expression> parse_equality()
 		{
@@ -258,12 +258,36 @@ namespace ParserInternal
 			}
 
 			return expr;
-		};
+		}
+
+		std::unique_ptr<Expression> parse_assignment()
+		{
+			std::unique_ptr<Expression> expr = parse_equality();
+
+			if (advance_for_token_types({TokenType::EQUAL}))
+			{
+				const Token& target = previous();
+				std::unique_ptr<Expression> value = parse_assignment();
+
+				// This is the only valid assignment target: Where the expr on the left is a variable expression
+				if (VariableExpression* var_expr = dynamic_cast<VariableExpression*>(expr.get()))
+				{
+					std::unique_ptr<AssignmentExpression> new_expr = std::make_unique<AssignmentExpression>();
+					new_expr->name = var_expr->name;
+					new_expr->value = std::move(value);
+					return new_expr;
+				}
+
+				Lox::report_error(target, "Invalid assignment target");
+			}
+
+			return expr;
+		}
 
 		std::unique_ptr<Expression> parse_expression()
 		{
-			return parse_equality();
-		};
+			return parse_assignment();
+		}
 
 		std::unique_ptr<Statement> parse_print_statement()
 		{

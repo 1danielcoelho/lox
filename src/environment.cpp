@@ -12,8 +12,19 @@ const Lox::Object& Lox::Environment::get_variable(const Lox::Token& token)
 	auto iter = values.find(token.lexeme);
 	if (iter == values.end())
 	{
-		throw Lox::RuntimeError{token, "Undefined variable '" + token.lexeme + "'"};
+		throw Lox::RuntimeError{token, "Cannot get undefined variable '" + token.lexeme + "'"};
 	}
 
 	return iter->second;
+}
+
+void Lox::Environment::assign_variable(const Lox::Token& token, const Lox::Object& value)
+{
+	auto iter = values.find(token.lexeme);
+	if (iter == values.end())
+	{
+		throw Lox::RuntimeError{token, "Cannot assign to undefined variable '" + token.lexeme + "'"};
+	}
+
+	values[token.lexeme] = value;
 }

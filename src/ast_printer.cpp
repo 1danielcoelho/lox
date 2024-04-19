@@ -51,3 +51,13 @@ std::optional<Lox::Object> Lox::ASTPrinter::visit(BinaryExpression& expr)
 {
 	return ASTPrinterInternal::parenthesize(this, expr.op.lexeme, {expr.left.get(), expr.right.get()});
 }
+
+std::optional<Lox::Object> Lox::ASTPrinter::visit(VariableExpression& expr)
+{
+	return ASTPrinterInternal::parenthesize(this, "var", {&expr});
+}
+
+std::optional<Lox::Object> Lox::ASTPrinter::visit(AssignmentExpression& expr)
+{
+	return ASTPrinterInternal::parenthesize(this, "assign to " + expr.name.lexeme, {expr.value.get()});
+}

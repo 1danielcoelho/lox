@@ -211,6 +211,13 @@ std::optional<Lox::Object> Lox::Interpreter::visit(VariableExpression& expr)
 	return environment.get_variable(expr.name);
 }
 
+std::optional<Lox::Object> Lox::Interpreter::visit(AssignmentExpression& expr)
+{
+    Lox::Object value = InterpreterInternal::evaluate(this, *expr.value).value();
+    environment.assign_variable(expr.name, value);
+	return value;
+}
+
 void Lox::Interpreter::visit(Statement& statement)
 {
 	statement.accept(*this);

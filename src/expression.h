@@ -58,6 +58,15 @@ namespace Lox
 		virtual std::optional<Object> accept(ExpressionVisitor& visitor) override;
 	};
 
+	struct AssignmentExpression : public Expression
+	{
+		Token name;
+		std::unique_ptr<Expression> value;
+
+	public:
+		virtual std::optional<Object> accept(ExpressionVisitor& visitor) override;
+	};
+
 	// TODO: We can't have templated virtual methods so we have a separate interface
 	// depending on the return type.
 	// Likely could be better but I'm not sure where the book is going with these just
@@ -71,5 +80,6 @@ namespace Lox
 		virtual std::optional<Object> visit(UnaryExpression& expr) = 0;
 		virtual std::optional<Object> visit(BinaryExpression& expr) = 0;
 		virtual std::optional<Object> visit(VariableExpression& expr) = 0;
+		virtual std::optional<Object> visit(AssignmentExpression& expr) = 0;
 	};
 }	 // namespace Lox
