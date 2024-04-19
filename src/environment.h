@@ -2,6 +2,7 @@
 
 #include "object.h"
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -11,6 +12,10 @@ namespace Lox
 
 	class Environment
 	{
+        // TODO: Have to handle these, he just yolos with Java pointers on the book
+		std::weak_ptr<Environment> enclosing_environment;
+		std::vector<std::unique_ptr<Environment>> child_environments;
+
 		std::unordered_map<std::string, Lox::Object> values;
 
 	public:

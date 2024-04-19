@@ -21,6 +21,15 @@ namespace InterpreterInternal
 		statement.accept(*interpreter_visitor);
 	}
 
+	void execute(	 //
+		Interpreter* interpreter_visitor,
+		std::vector<std::unique_ptr<Statement>>& statements,
+		std::shared_ptr<Environment>& environment
+	)
+	{
+        // Environment& previous = interpreter_visitor->
+	}
+
 	bool is_truthy(const Object& obj)
 	{
 		if (std::holds_alternative<std::nullptr_t>(obj))
@@ -213,8 +222,8 @@ std::optional<Lox::Object> Lox::Interpreter::visit(VariableExpression& expr)
 
 std::optional<Lox::Object> Lox::Interpreter::visit(AssignmentExpression& expr)
 {
-    Lox::Object value = InterpreterInternal::evaluate(this, *expr.value).value();
-    environment.assign_variable(expr.name, value);
+	Lox::Object value = InterpreterInternal::evaluate(this, *expr.value).value();
+	environment.assign_variable(expr.name, value);
 	return value;
 }
 
@@ -244,4 +253,9 @@ void Lox::Interpreter::visit(VariableDeclarationStatement& statement)
 	}
 
 	environment.define_variable(statement.name.lexeme, value);
+}
+
+void Lox::Interpreter::visit(BlockStatement& statement)
+{
+	InterpreterInternal::execute_block(this, statement.statements, environment.create_child());
 }

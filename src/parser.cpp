@@ -309,11 +309,30 @@ namespace ParserInternal
 			return statement;
 		}
 
+		std::vector<std::unique_ptr<Statement>> parse_block()
+		{
+			std::vector<std::unique_ptr<Statement>> statements;
+
+			while (!current_matches_type(TokenType::RIGHT_BRACE) && !is_at_end())
+			{
+				statements.push_back(parse_declaration());
+			}
+
+			advance_for_token_type_checked(TokenType::RIGHT_BRACE, "Expected a '}' after block.");
+			return statements;
+		}
+
 		std::unique_ptr<Statement> parse_statement()
 		{
 			if (advance_for_token_types({TokenType::PRINT}))
 			{
 				return parse_print_statement();
+			}
+			if (advance_for_token_types({TokenType::LEFT_BRACE}))
+			{
+				std::unique_ptr<BlockStatement> block_statement = std::make_unique<BlockStatement>();
+				block_statement->statements = parse_block();
+				return block_statement;
 			}
 
 			return parse_expression_statement();

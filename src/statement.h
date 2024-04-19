@@ -4,6 +4,7 @@
 #include "token.h"
 
 #include <memory>
+#include <vector>
 
 namespace Lox
 {
@@ -40,6 +41,14 @@ namespace Lox
 		virtual void accept(StatementVisitor& visitor) override;
 	};
 
+	struct BlockStatement : public Statement
+	{
+		std::vector<std::unique_ptr<Statement>> statements;
+
+	public:
+		virtual void accept(StatementVisitor& visitor) override;
+	};
+
 	class StatementVisitor
 	{
 	public:
@@ -47,5 +56,6 @@ namespace Lox
 		virtual void visit(ExpressionStatement& expr) = 0;
 		virtual void visit(PrintStatement& expr) = 0;
 		virtual void visit(VariableDeclarationStatement& expr) = 0;
+		virtual void visit(BlockStatement& expr) = 0;
 	};
 }	 // namespace Lox
