@@ -283,6 +283,14 @@ void Lox::Interpreter::visit(IfStatement& statement)
 	}
 }
 
+void Lox::Interpreter::visit(WhileStatement& statement)
+{
+	while (InterpreterInternal::is_truthy(evaluate_expression(*statement.condition).value()))
+	{
+		execute_statement(*statement.body);
+	}
+}
+
 std::optional<Lox::Object> Lox::Interpreter::evaluate_expression(Expression& expr)
 {
 	return expr.accept(*this);

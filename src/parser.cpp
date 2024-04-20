@@ -360,7 +360,7 @@ namespace ParserInternal
 		{
 			advance_for_token_type_checked(TokenType::LEFT_PAREN, "Expected a '(' after 'if'");
 			std::unique_ptr<Expression> condition = parse_expression();
-			advance_for_token_type_checked(TokenType::RIGHT_PAREN, "Expected a ')' after 'if'");
+			advance_for_token_type_checked(TokenType::RIGHT_PAREN, "Expected a ')' after 'if' condition");
 
 			std::unique_ptr<Statement> then_branch = parse_statement();
 
@@ -377,8 +377,105 @@ namespace ParserInternal
 			return if_statement;
 		}
 
+		std::unique_ptr<Statement> parse_while_statement()
+		{
+			advance_for_token_type_checked(TokenType::LEFT_PAREN, "Expected a '(' after 'while'");
+			std::unique_ptr<Expression> condition = parse_expression();
+			advance_for_token_type_checked(TokenType::RIGHT_PAREN, "Expected a ')' after 'while' condition");
+
+			std::unique_ptr<Statement> body = parse_statement();
+
+			std::unique_ptr<WhileStatement> while_statement = std::make_unique<WhileStatement>();
+			while_statement->condition = std::move(condition);
+			while_statement->body = std::move(body);
+			return while_statement;
+		}
+
+		std::unique_ptr<Statement> parse_for_statement()
+		{
+			advance_for_token_type_checked(TokenType::LEFT_PAREN, "Expected a '(' after 'for'");
+
+			// Parse initializer
+			std::unique_ptr<Statement> initializer;
+			if (advance_for_token_types({TokenType::SEMICOLON}))
+			{
+				initializer = nullptr;
+			}
+			else if (advance_for_token_types({TokenType::VAR}))
+			{
+				initializer = parse_var_declaration();
+			}
+			else
+			{
+				initializer = parse_expression_statement();
+			}
+
+			// Parse condition
+			std::unique_ptr<Expression> condition = nullptr;
+			if (!current_matches_type(TokenType::SEMICOLON))
+			{
+				condition = parse_expression();
+			}
+			advance_for_token_type_checked(TokenType::SEMICOLON, "Expected a ';' after 'for' condition");
+
+			// Parse increment
+			std::unique_ptr<Expression> increment = nullptr;
+			if (!current_matches_type(TokenType::RIGHT_PAREN))
+			{
+				increment = parse_expression();
+			}
+			advance_for_token_type_checked(TokenType::RIGHT_PAREN, "Expected a ')' after 'for' loop clauses");
+
+			// Parse body
+			std::unique_ptr<Statement> body = parse_statement();
+
+			// Replace body with a block that executes the previous body + the increment expression, if we have one
+			if (increment != nullptr)
+			{
+				std::unique_ptr<ExpressionStatement> increment_statement = std::make_unique<ExpressionStatement>();
+				increment_statement->expression = std::move(increment);
+
+				std::unique_ptr<BlockStatement> new_body = std::make_unique<BlockStatement>();
+				new_body->statements.push_back(std::move(body));
+				new_body->statements.push_back(std::move(increment_statement));
+
+				body = std::move(new_body);
+			}
+
+			// Replace condition with a 'true' if we don't have one
+			if (condition == nullptr)
+			{
+				std::unique_ptr<LiteralExpression> new_condition = std::make_unique<LiteralExpression>();
+				new_condition->literal = true;
+
+				condition = std::move(new_condition);
+			}
+
+			// Replace body with a while loop that executes the previous actual body, checking the condition
+			std::unique_ptr<WhileStatement> while_statement = std::make_unique<WhileStatement>();
+			while_statement->condition = std::move(condition);
+			while_statement->body = std::move(body);
+			body = std::move(while_statement);
+
+			// Replace body once again with a block that first executes the initializer, if we have one
+			if (initializer != nullptr)
+			{
+				std::unique_ptr<BlockStatement> new_body = std::make_unique<BlockStatement>();
+				new_body->statements.push_back(std::move(initializer));
+				new_body->statements.push_back(std::move(body));
+
+				body = std::move(new_body);
+			}
+
+			return body;
+		}
+
 		std::unique_ptr<Statement> parse_statement()
 		{
+			if (advance_for_token_types({TokenType::FOR}))
+			{
+				return parse_for_statement();
+			}
 			if (advance_for_token_types({TokenType::IF}))
 			{
 				return parse_if_statement();
@@ -386,6 +483,10 @@ namespace ParserInternal
 			if (advance_for_token_types({TokenType::PRINT}))
 			{
 				return parse_print_statement();
+			}
+			if (advance_for_token_types({TokenType::WHILE}))
+			{
+				return parse_while_statement();
 			}
 			if (advance_for_token_types({TokenType::LEFT_BRACE}))
 			{
