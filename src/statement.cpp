@@ -24,3 +24,8 @@ void Lox::BlockStatement::accept(StatementVisitor& visitor)
 {
 	visitor.visit(*this);
 }
+
+void Lox::IfStatement::accept(StatementVisitor& visitor)
+{
+	visitor.visit(*this);
+}

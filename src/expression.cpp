@@ -34,3 +34,8 @@ std::optional<Lox::Object> Lox::AssignmentExpression::accept(ExpressionVisitor& 
 {
 	return visitor.visit(*this);
 }
+
+std::optional<Lox::Object> Lox::LogicalExpression::accept(ExpressionVisitor& visitor)
+{
+	return visitor.visit(*this);
+}

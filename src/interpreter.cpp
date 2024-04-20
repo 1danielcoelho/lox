@@ -215,6 +215,28 @@ std::optional<Lox::Object> Lox::Interpreter::visit(AssignmentExpression& expr)
 	return value;
 }
 
+std::optional<Lox::Object> Lox::Interpreter::visit(LogicalExpression& expr)
+{
+	Lox::Object left = evaluate_expression(*expr.left).value();
+
+	if (expr.op.type == TokenType::OR)
+	{
+		if (InterpreterInternal::is_truthy(left))
+		{
+			return left;
+		}
+	}
+	else	// if expr.op.type == TokenType::AND
+	{
+		if (!InterpreterInternal::is_truthy(left))
+		{
+			return left;
+		}
+	}
+
+	return evaluate_expression(*expr.right);
+}
+
 void Lox::Interpreter::visit(Statement& statement)
 {
 	statement.accept(*this);
@@ -247,6 +269,18 @@ void Lox::Interpreter::visit(BlockStatement& statement)
 {
 	std::unique_ptr<Environment> block_environment = std::make_unique<Environment>(current_environment);
 	execute_block(statement.statements, *block_environment);
+}
+
+void Lox::Interpreter::visit(IfStatement& statement)
+{
+	if (InterpreterInternal::is_truthy(evaluate_expression(*statement.condition).value()))
+	{
+		execute_statement(*statement.then_branch);
+	}
+	else if (statement.else_branch)
+	{
+		execute_statement(*statement.then_branch);
+	}
 }
 
 std::optional<Lox::Object> Lox::Interpreter::evaluate_expression(Expression& expr)

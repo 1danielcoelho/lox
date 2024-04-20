@@ -49,6 +49,16 @@ namespace Lox
 		virtual void accept(StatementVisitor& visitor) override;
 	};
 
+	struct IfStatement : public Statement
+	{
+		std::unique_ptr<Expression> condition;
+		std::unique_ptr<Statement> then_branch;
+		std::unique_ptr<Statement> else_branch;
+
+	public:
+		virtual void accept(StatementVisitor& visitor) override;
+	};
+
 	class StatementVisitor
 	{
 	public:
@@ -57,5 +67,6 @@ namespace Lox
 		virtual void visit(PrintStatement& expr) = 0;
 		virtual void visit(VariableDeclarationStatement& expr) = 0;
 		virtual void visit(BlockStatement& expr) = 0;
+		virtual void visit(IfStatement& expr) = 0;
 	};
 }	 // namespace Lox

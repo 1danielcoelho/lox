@@ -260,9 +260,43 @@ namespace ParserInternal
 			return expr;
 		}
 
-		std::unique_ptr<Expression> parse_assignment()
+		std::unique_ptr<Expression> parse_and()
 		{
 			std::unique_ptr<Expression> expr = parse_equality();
+
+			while (advance_for_token_types({TokenType::AND}))
+			{
+				std::unique_ptr<LogicalExpression> new_expr = std::make_unique<LogicalExpression>();
+				new_expr->left = std::move(expr);
+				new_expr->op = previous();
+				new_expr->right = parse_equality();
+
+				expr = std::move(new_expr);
+			}
+
+			return expr;
+		}
+
+		std::unique_ptr<Expression> parse_or()
+		{
+			std::unique_ptr<Expression> expr = parse_and();
+
+			while (advance_for_token_types({TokenType::OR}))
+			{
+				std::unique_ptr<LogicalExpression> new_expr = std::make_unique<LogicalExpression>();
+				new_expr->left = std::move(expr);
+				new_expr->op = previous();
+				new_expr->right = parse_and();
+
+				expr = std::move(new_expr);
+			}
+
+			return expr;
+		}
+
+		std::unique_ptr<Expression> parse_assignment()
+		{
+			std::unique_ptr<Expression> expr = parse_or();
 
 			if (advance_for_token_types({TokenType::EQUAL}))
 			{
@@ -322,8 +356,33 @@ namespace ParserInternal
 			return statements;
 		}
 
+		std::unique_ptr<Statement> parse_if_statement()
+		{
+			advance_for_token_type_checked(TokenType::LEFT_PAREN, "Expected a '(' after 'if'");
+			std::unique_ptr<Expression> condition = parse_expression();
+			advance_for_token_type_checked(TokenType::RIGHT_PAREN, "Expected a ')' after 'if'");
+
+			std::unique_ptr<Statement> then_branch = parse_statement();
+
+			std::unique_ptr<Statement> else_branch = nullptr;
+			if (advance_for_token_types({TokenType::ELSE}))
+			{
+				else_branch = parse_statement();
+			}
+
+			std::unique_ptr<IfStatement> if_statement = std::make_unique<IfStatement>();
+			if_statement->condition = std::move(condition);
+			if_statement->then_branch = std::move(then_branch);
+			if_statement->else_branch = std::move(else_branch);
+			return if_statement;
+		}
+
 		std::unique_ptr<Statement> parse_statement()
 		{
+			if (advance_for_token_types({TokenType::IF}))
+			{
+				return parse_if_statement();
+			}
 			if (advance_for_token_types({TokenType::PRINT}))
 			{
 				return parse_print_statement();
