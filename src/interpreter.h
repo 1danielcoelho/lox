@@ -17,9 +17,12 @@ namespace Lox
 		: public ExpressionVisitor
 		, public StatementVisitor
 	{
-		std::unique_ptr<Environment> environment;
+		std::unique_ptr<Environment> global_environment;
+		Environment* current_environment = nullptr;
 
 	public:
+		Interpreter();
+
 		void interpret(const std::vector<std::unique_ptr<Statement>>& statements);
 
 	public:
@@ -36,5 +39,10 @@ namespace Lox
 		virtual void visit(PrintStatement& statement) override;
 		virtual void visit(VariableDeclarationStatement& statement) override;
 		virtual void visit(BlockStatement& statement) override;
+
+	protected:
+		std::optional<Object> evaluate_expression(Expression& expr);
+		void execute_statement(Statement& statement);
+		void execute_block(std::vector<std::unique_ptr<Statement>>& statements, Environment& environment);
 	};
-}
+}	 // namespace Lox

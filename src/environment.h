@@ -12,13 +12,13 @@ namespace Lox
 
 	class Environment
 	{
-        // TODO: Have to handle these, he just yolos with Java pointers on the book
-		std::weak_ptr<Environment> enclosing_environment;
-		std::vector<std::unique_ptr<Environment>> child_environments;
+		Environment* enclosing_environment = nullptr;
 
 		std::unordered_map<std::string, Lox::Object> values;
 
 	public:
+		Environment(Environment* in_enclosing = nullptr);
+
 		void define_variable(const std::string& name, const Lox::Object& value);
 		const Lox::Object& get_variable(const Lox::Token& token);
 		void assign_variable(const Lox::Token& token, const Lox::Object& value);

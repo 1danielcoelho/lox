@@ -1,6 +1,7 @@
 #include "interpreter.h"
 #include "error.h"
 #include "expression.h"
+#include "guard_value.h"
 
 #include <cassert>
 #include <iostream>
@@ -10,25 +11,6 @@
 namespace InterpreterInternal
 {
 	using namespace Lox;
-
-	std::optional<Object> evaluate(Interpreter* interpreter_visitor, Expression& expr)
-	{
-		return expr.accept(*interpreter_visitor);
-	}
-
-	void execute(Interpreter* interpreter_visitor, Statement& statement)
-	{
-		statement.accept(*interpreter_visitor);
-	}
-
-	void execute(	 //
-		Interpreter* interpreter_visitor,
-		std::vector<std::unique_ptr<Statement>>& statements,
-		std::shared_ptr<Environment>& environment
-	)
-	{
-        // Environment& previous = interpreter_visitor->
-	}
 
 	bool is_truthy(const Object& obj)
 	{
@@ -41,7 +23,7 @@ namespace InterpreterInternal
 			return std::get<bool>(obj);
 		}
 
-		// TODO: Maybe 0 should return false too?
+		// TODO: Maybe 0.0 should return false too?
 		return true;
 	}
 
@@ -66,6 +48,12 @@ namespace InterpreterInternal
 	}
 }	 // namespace InterpreterInternal
 
+Lox::Interpreter::Interpreter()
+	: global_environment(std::make_unique<Environment>())
+	, current_environment(global_environment.get())
+{
+}
+
 void Lox::Interpreter::interpret(const std::vector<std::unique_ptr<Statement>>& statements)
 {
 	using namespace InterpreterInternal;
@@ -74,7 +62,7 @@ void Lox::Interpreter::interpret(const std::vector<std::unique_ptr<Statement>>& 
 	{
 		for (const std::unique_ptr<Statement>& statement : statements)
 		{
-			execute(this, *statement);
+			execute_statement(*statement);
 		}
 	}
 	catch (const RuntimeError& e)
@@ -95,14 +83,14 @@ std::optional<Lox::Object> Lox::Interpreter::visit(LiteralExpression& expr)
 
 std::optional<Lox::Object> Lox::Interpreter::visit(GroupingExpression& expr)
 {
-	return InterpreterInternal::evaluate(this, *expr.expr);
+	return evaluate_expression(*expr.expr);
 }
 
 std::optional<Lox::Object> Lox::Interpreter::visit(UnaryExpression& expr)
 {
 	using namespace InterpreterInternal;
 
-	std::optional<Object> right = evaluate(this, *expr.right);
+	std::optional<Object> right = evaluate_expression(*expr.right);
 
 	switch (expr.op.type)
 	{
@@ -130,8 +118,8 @@ std::optional<Lox::Object> Lox::Interpreter::visit(BinaryExpression& expr)
 {
 	using namespace InterpreterInternal;
 
-	std::optional<Object> left_optional = evaluate(this, *expr.left);
-	std::optional<Object> right_optional = evaluate(this, *expr.right);
+	std::optional<Object> left_optional = evaluate_expression(*expr.left);
+	std::optional<Object> right_optional = evaluate_expression(*expr.right);
 	Object& left = left_optional.value();
 	Object& right = right_optional.value();
 
@@ -217,13 +205,13 @@ std::optional<Lox::Object> Lox::Interpreter::visit(BinaryExpression& expr)
 
 std::optional<Lox::Object> Lox::Interpreter::visit(VariableExpression& expr)
 {
-	return environment.get_variable(expr.name);
+	return current_environment->get_variable(expr.name);
 }
 
 std::optional<Lox::Object> Lox::Interpreter::visit(AssignmentExpression& expr)
 {
-	Lox::Object value = InterpreterInternal::evaluate(this, *expr.value).value();
-	environment.assign_variable(expr.name, value);
+	Lox::Object value = evaluate_expression(*expr.value).value();
+	current_environment->assign_variable(expr.name, value);
 	return value;
 }
 
@@ -235,12 +223,12 @@ void Lox::Interpreter::visit(Statement& statement)
 void Lox::Interpreter::visit(ExpressionStatement& statement)
 {
 	// We don't do anything with the result here, that's the whole point
-	InterpreterInternal::evaluate(this, *statement.expression);
+	evaluate_expression(*statement.expression);
 }
 
 void Lox::Interpreter::visit(PrintStatement& statement)
 {
-	std::optional<Object> result = InterpreterInternal::evaluate(this, *statement.expression);
+	std::optional<Object> result = evaluate_expression(*statement.expression);
 	std::cout << Lox::to_string(result.value()) << std::endl;
 }
 
@@ -249,13 +237,34 @@ void Lox::Interpreter::visit(VariableDeclarationStatement& statement)
 	Lox::Object value = {nullptr};
 	if (statement.initializer)
 	{
-		value = InterpreterInternal::evaluate(this, *statement.initializer).value();
+		value = evaluate_expression(*statement.initializer).value();
 	}
 
-	environment.define_variable(statement.name.lexeme, value);
+	current_environment->define_variable(statement.name.lexeme, value);
 }
 
 void Lox::Interpreter::visit(BlockStatement& statement)
 {
-	InterpreterInternal::execute_block(this, statement.statements, environment.create_child());
+	std::unique_ptr<Environment> block_environment = std::make_unique<Environment>(current_environment);
+	execute_block(statement.statements, *block_environment);
+}
+
+std::optional<Lox::Object> Lox::Interpreter::evaluate_expression(Expression& expr)
+{
+	return expr.accept(*this);
+}
+
+void Lox::Interpreter::execute_statement(Statement& statement)
+{
+	statement.accept(*this);
+}
+
+void Lox::Interpreter::execute_block(std::vector<std::unique_ptr<Statement>>& statements, Environment& environment)
+{
+	ScopedGuardValue guard{current_environment, &environment};
+
+	for (const std::unique_ptr<Statement>& statement : statements)
+	{
+		execute_statement(*statement);
+	}
 }
