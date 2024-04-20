@@ -10,7 +10,7 @@
 			"request": "launch",
 			"cwd": "${workspaceRoot}",
 			"args": [
-				// "F:\\Projects\\lox\\samples\\text_simple.l"
+				"F:\\Projects\\lox\\samples\\basic.l"
 			],
 			"internalConsoleOptions": "openOnSessionStart",
 			"console": "integratedTerminal",

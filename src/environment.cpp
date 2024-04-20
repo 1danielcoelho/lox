@@ -34,11 +34,13 @@ void Lox::Environment::assign_variable(const Lox::Token& token, const Lox::Objec
 	if (iter != values.end())
 	{
 		values[token.lexeme] = value;
+		return;
 	}
 
 	if (enclosing_environment)
 	{
 		enclosing_environment->assign_variable(token, value);
+		return;
 	}
 
 	throw Lox::RuntimeError{token, "Cannot assign to undefined variable '" + token.lexeme + "'"};
