@@ -230,7 +230,7 @@ namespace ParserInternal
 		{
 			std::unique_ptr<Expression> expr = parse_term();
 
-			while (advance_for_token_types({TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS_EQUAL}))
+			while (advance_for_token_types({TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS, TokenType::LESS_EQUAL}))
 			{
 				std::unique_ptr<BinaryExpression> new_expr = std::make_unique<BinaryExpression>();
 				new_expr->left = std::move(expr);
