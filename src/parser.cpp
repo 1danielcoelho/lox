@@ -179,6 +179,50 @@ namespace ParserInternal
 			throw create_error(peek(), "Expected an expression.");
 		}
 
+		std::unique_ptr<Expression> finish_parsing_call(std::unique_ptr<Expression>&& callee)
+		{
+			std::vector<std::unique_ptr<Expression>> arguments;
+			if (!current_matches_type(TokenType::RIGHT_PAREN))
+			{
+				do
+				{
+					if (arguments.size() > 255)
+					{
+						Lox::report_error(peek(), "Can't have more than 255 arguments");
+					}
+
+					arguments.push_back(parse_expression());
+				} while (advance_for_token_types({TokenType::COMMA}));
+			}
+
+			const Token* paren = advance_for_token_type_checked(TokenType::RIGHT_PAREN, "Expected ')' after arguments").value();
+
+			std::unique_ptr<CallExpression> new_expr = std::make_unique<CallExpression>();
+			new_expr->callee = std::move(callee);
+			new_expr->paren = *paren;
+			new_expr->arguments = std::move(arguments);
+			return new_expr;
+		}
+
+		std::unique_ptr<Expression> parse_call()
+		{
+			std::unique_ptr<Expression> expr = parse_primary();
+
+			while (true)
+			{
+				if (advance_for_token_types({TokenType::LEFT_PAREN}))
+				{
+					expr = finish_parsing_call(std::move(expr));
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			return expr;
+		}
+
 		std::unique_ptr<Expression> parse_unary()
 		{
 			if (advance_for_token_types({TokenType::BANG, TokenType::MINUS}))
@@ -189,7 +233,7 @@ namespace ParserInternal
 				return new_expr;
 			}
 
-			return parse_primary();
+			return parse_call();
 		}
 
 		std::unique_ptr<Expression> parse_factor()

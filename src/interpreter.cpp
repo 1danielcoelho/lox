@@ -1,7 +1,9 @@
 #include "interpreter.h"
+#include "callable.h"
 #include "error.h"
 #include "expression.h"
 #include "guard_value.h"
+#include "native_function.h"
 
 #include <cassert>
 #include <iostream>
@@ -52,6 +54,7 @@ Lox::Interpreter::Interpreter()
 	: global_environment(std::make_unique<Environment>())
 	, current_environment(global_environment.get())
 {
+	global_environment->define_variable("clock", Lox::ClockFunction{});
 }
 
 void Lox::Interpreter::interpret(const std::vector<std::unique_ptr<Statement>>& statements)
@@ -235,6 +238,33 @@ std::optional<Lox::Object> Lox::Interpreter::visit(LogicalExpression& expr)
 	}
 
 	return evaluate_expression(*expr.right);
+}
+
+std::optional<Lox::Object> Lox::Interpreter::visit(CallExpression& expr)
+{
+	Lox::Object callee = evaluate_expression(*expr.callee).value();
+
+	std::vector<Lox::Object> arguments;
+	arguments.reserve(expr.arguments.size());
+	for (const std::unique_ptr<Expression>& argument : expr.arguments)
+	{
+		arguments.push_back(evaluate_expression(*argument).value());
+	}
+
+	const Lox::Callable* function = Lox::as_callable(callee);
+	if (!function)
+	{
+		throw RuntimeError{expr.paren, "Can only call functions and classes"};
+	}
+
+	if (arguments.size() != function->arity())
+	{
+		throw RuntimeError{
+			expr.paren,
+			"Expected " + std::to_string(function->arity()) + " arguments but got " + std::to_string(arguments.size()) + " instead"};
+	}
+
+	return function->call(*this, arguments);
 }
 
 void Lox::Interpreter::visit(Statement& statement)

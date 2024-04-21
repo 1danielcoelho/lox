@@ -24,3 +24,28 @@ std::string Lox::to_string(const Lox::Object& variant)
 
 	return std::visit(Visitor(), variant);
 }
+
+const Lox::Callable* as_callable(const Lox::Object& object)
+{
+	struct Visitor
+	{
+		const Lox::Callable* operator()(const std::string& s)
+		{
+			return nullptr;
+		}
+		const Lox::Callable* operator()(double d)
+		{
+			return nullptr;
+		}
+		const Lox::Callable* operator()(bool b)
+		{
+			return nullptr;
+		}
+		const Lox::Callable* operator()([[maybe_unused]] std::nullptr_t n)
+		{
+			return nullptr;
+		}
+	};
+
+	return std::visit(Visitor(), object);
+}

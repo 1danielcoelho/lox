@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace Lox
 {
@@ -77,6 +78,16 @@ namespace Lox
 		virtual std::optional<Object> accept(ExpressionVisitor& visitor) override;
 	};
 
+	struct CallExpression : public Expression
+	{
+		std::unique_ptr<Expression> callee;
+		Token paren;
+		std::vector<std::unique_ptr<Expression>> arguments;
+
+	public:
+		virtual std::optional<Object> accept(ExpressionVisitor& visitor) override;
+	};
+
 	// TODO: We can't have templated virtual methods so we have a separate interface
 	// depending on the return type.
 	// Likely could be better but I'm not sure where the book is going with these just
@@ -92,5 +103,6 @@ namespace Lox
 		virtual std::optional<Object> visit(VariableExpression& expr) = 0;
 		virtual std::optional<Object> visit(AssignmentExpression& expr) = 0;
 		virtual std::optional<Object> visit(LogicalExpression& expr) = 0;
+		virtual std::optional<Object> visit(CallExpression& expr) = 0;
 	};
 }	 // namespace Lox
