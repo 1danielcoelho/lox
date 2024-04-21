@@ -78,6 +78,15 @@ namespace Lox
 		virtual void accept(StatementVisitor& visitor) override;
 	};
 
+	struct ReturnStatement : public Statement
+	{
+		Token keyword;
+		std::unique_ptr<Expression> value;
+
+	public:
+		virtual void accept(StatementVisitor& visitor) override;
+	};
+
 	class StatementVisitor
 	{
 	public:
@@ -89,5 +98,6 @@ namespace Lox
 		virtual void visit(IfStatement& expr) = 0;
 		virtual void visit(WhileStatement& expr) = 0;
 		virtual void visit(FunctionStatement& expr) = 0;
+		virtual void visit(ReturnStatement& expr) = 0;
 	};
 }	 // namespace Lox

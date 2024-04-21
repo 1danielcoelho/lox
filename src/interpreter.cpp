@@ -341,6 +341,17 @@ void Lox::Interpreter::visit(FunctionStatement& statement)
 	current_environment->define_variable(statement.name.lexeme, function);
 }
 
+void Lox::Interpreter::visit(ReturnStatement& statement)
+{
+	Lox::Object value = nullptr;
+	if (statement.value)
+	{
+		value = evaluate_expression(*statement.value).value();
+	}
+
+	throw Return{value};
+}
+
 std::optional<Lox::Object> Lox::Interpreter::evaluate_expression(Expression& expr)
 {
 	return expr.accept(*this);

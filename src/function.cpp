@@ -1,5 +1,6 @@
 #include "function.h"
 #include "environment.h"
+#include "error.h"
 #include "interpreter.h"
 
 Lox::Object Lox::Function::call(Interpreter& interpreter, const std::vector<Lox::Object>& arguments) const
@@ -11,9 +12,16 @@ Lox::Object Lox::Function::call(Interpreter& interpreter, const std::vector<Lox:
 		local_env->define_variable(token.lexeme, arguments[i]);
 	}
 
-	interpreter.execute_block(declaration->body, *local_env);
+	try
+	{
+		interpreter.execute_block(declaration->body, *local_env);
+	}
+	catch (const Lox::Return& return_value)
+	{
+		return return_value.value;
+	}
 
-	// TODO: return type?
+	// Return 'nil'
 	return nullptr;
 }
 

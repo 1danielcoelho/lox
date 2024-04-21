@@ -39,3 +39,8 @@ void Lox::FunctionStatement::accept(StatementVisitor& visitor)
 {
 	visitor.visit(*this);
 }
+
+void Lox::ReturnStatement::accept(StatementVisitor& visitor)
+{
+	visitor.visit(*this);
+}

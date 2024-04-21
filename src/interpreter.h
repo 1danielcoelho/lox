@@ -47,6 +47,7 @@ namespace Lox
 		virtual void visit(IfStatement& statement) override;
 		virtual void visit(WhileStatement& statement) override;
 		virtual void visit(FunctionStatement& statement) override;
+		virtual void visit(ReturnStatement& statement) override;
 
 	public:
 		std::optional<Object> evaluate_expression(Expression& expr);

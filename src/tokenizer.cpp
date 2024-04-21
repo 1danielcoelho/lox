@@ -88,7 +88,7 @@ std::vector<Lox::Token> Lox::tokenize(const std::string& source)
 	auto add_token = [&](TokenType type, const Object& literal = {})
 	{
 		std::string substr = source.substr(start, current - start);
-		std::cout << "consumed token type " << (int)type << " '" << substr.c_str() << "' with literal '" << to_string(literal) << "'" << std::endl;
+		// std::cout << "consumed token type " << (int)type << " '" << substr.c_str() << "' with literal '" << to_string(literal) << "'" << std::endl;
 		result.push_back(Token{type, substr, literal, line});
 	};
 

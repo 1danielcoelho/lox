@@ -514,6 +514,24 @@ namespace ParserInternal
 			return body;
 		}
 
+		std::unique_ptr<Statement> parse_return_statement()
+		{
+			const Token& keyword = previous();
+
+			std::unique_ptr<Expression> value = nullptr;
+			if (!check(TokenType::SEMICOLON))
+			{
+				value = parse_expression();
+			}
+
+			consume(TokenType::SEMICOLON, "Expected ';' after return value");
+
+			std::unique_ptr<ReturnStatement> statement = std::make_unique<ReturnStatement>();
+			statement->keyword = keyword;
+			statement->value = std::move(value);
+			return statement;
+		}
+
 		std::unique_ptr<Statement> parse_statement()
 		{
 			if (match({TokenType::FOR}))
@@ -527,6 +545,10 @@ namespace ParserInternal
 			if (match({TokenType::PRINT}))
 			{
 				return parse_print_statement();
+			}
+			if (match({TokenType::RETURN}))
+			{
+				return parse_return_statement();
 			}
 			if (match({TokenType::WHILE}))
 			{

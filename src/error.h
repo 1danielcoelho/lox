@@ -1,5 +1,7 @@
 #pragma once
 
+#include "object.h"
+
 #include <string>
 
 namespace Lox
@@ -14,6 +16,12 @@ namespace Lox
 	{
 		const Lox::Token& token;
 		std::string error_message;
+	};
+
+	// We throw this in order to evaluate return statements
+	struct Return
+	{
+		Lox::Object value;
 	};
 
 	// https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html
