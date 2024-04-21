@@ -12,13 +12,14 @@ namespace Lox
 
 	class NativeFunction : public Callable
 	{
-		virtual Lox::Object call(Interpreter& interpreter, const std::vector<Lox::Object>& arguments) const = 0;
-		virtual int arity() const = 0;
-	};
+	public:
+		Lox::Object (*call_ptr)(Interpreter&, const std::vector<Lox::Object>&) = nullptr;
+		int (*arity_ptr)() = nullptr;
 
-	class ClockFunction : public NativeFunction
-	{
+	public:
 		virtual Lox::Object call(Interpreter& interpreter, const std::vector<Lox::Object>& arguments) const override;
 		virtual int arity() const override;
 	};
+
+	NativeFunction* get_clock_function();
 }

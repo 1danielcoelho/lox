@@ -54,7 +54,7 @@ Lox::Interpreter::Interpreter()
 	: global_environment(std::make_unique<Environment>())
 	, current_environment(global_environment.get())
 {
-	global_environment->define_variable("clock", Lox::ClockFunction{});
+	global_environment->define_variable("clock", Lox::get_clock_function());
 }
 
 void Lox::Interpreter::interpret(const std::vector<std::unique_ptr<Statement>>& statements)

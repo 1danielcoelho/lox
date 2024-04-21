@@ -4,6 +4,7 @@
 #include "expression.cpp"
 #include "interpreter.cpp"
 #include "main.cpp"
+#include "native_function.cpp"
 #include "object.cpp"
 #include "parser.cpp"
 #include "statement.cpp"

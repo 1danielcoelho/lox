@@ -1,4 +1,5 @@
 #include "object.h"
+#include "native_function.h"
 
 std::string Lox::to_string(const Lox::Object& variant)
 {
@@ -20,30 +21,38 @@ std::string Lox::to_string(const Lox::Object& variant)
 		{
 			return "";
 		}
+		std::string operator()([[maybe_unused]] Lox::NativeFunction* func)
+		{
+			return "<native function at " + std::to_string((unsigned long long)func) + ">";
+		}
 	};
 
 	return std::visit(Visitor(), variant);
 }
 
-const Lox::Callable* as_callable(const Lox::Object& object)
+const Lox::Callable* Lox::as_callable(const Lox::Object& object)
 {
 	struct Visitor
 	{
-		const Lox::Callable* operator()(const std::string& s)
+		const Lox::Callable* operator()([[maybe_unused]] const std::string& s)
 		{
 			return nullptr;
 		}
-		const Lox::Callable* operator()(double d)
+		const Lox::Callable* operator()([[maybe_unused]] double d)
 		{
 			return nullptr;
 		}
-		const Lox::Callable* operator()(bool b)
+		const Lox::Callable* operator()([[maybe_unused]] bool b)
 		{
 			return nullptr;
 		}
 		const Lox::Callable* operator()([[maybe_unused]] std::nullptr_t n)
 		{
 			return nullptr;
+		}
+		const Lox::Callable* operator()(Lox::NativeFunction* func)
+		{
+			return func;
 		}
 	};
 
