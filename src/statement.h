@@ -68,6 +68,16 @@ namespace Lox
 		virtual void accept(StatementVisitor& visitor) override;
 	};
 
+	struct FunctionStatement : public Statement
+	{
+		Token name;
+		std::vector<Token> params;
+		std::vector<std::unique_ptr<Statement>> body;
+
+	public:
+		virtual void accept(StatementVisitor& visitor) override;
+	};
+
 	class StatementVisitor
 	{
 	public:
@@ -78,5 +88,6 @@ namespace Lox
 		virtual void visit(BlockStatement& expr) = 0;
 		virtual void visit(IfStatement& expr) = 0;
 		virtual void visit(WhileStatement& expr) = 0;
+		virtual void visit(FunctionStatement& expr) = 0;
 	};
 }	 // namespace Lox

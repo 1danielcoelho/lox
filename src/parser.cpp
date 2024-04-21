@@ -560,10 +560,45 @@ namespace ParserInternal
 			return statement;
 		}
 
+		// TODO: Not use string comparison...
+		std::unique_ptr<FunctionStatement> parse_function_declaration(const std::string& kind)
+		{
+			const Token* name = advance_for_token_type_checked(TokenType::IDENTIFIER, "Expected " + kind + " name").value();
+			advance_for_token_type_checked(TokenType::LEFT_PAREN, "Expected '(' after " + kind + " name");
+
+			std::vector<Token> parameters;
+			if (!current_matches_type(TokenType::RIGHT_PAREN))
+			{
+				do
+				{
+					if (parameters.size() >= 255)
+					{
+						Lox::report_error(peek(), "Can't have more than 255 function parameters");
+					}
+
+					parameters.push_back(*advance_for_token_type_checked(TokenType::IDENTIFIER, "Expected parameter name").value());
+				} while (current_matches_type(TokenType::COMMA));
+			}
+
+			advance_for_token_type_checked(TokenType::RIGHT_PAREN, "Expected ')' after function parameters");
+			advance_for_token_type_checked(TokenType::LEFT_BRACE, "Expected '{' before " + kind + " body");
+			std::vector<std::unique_ptr<Statement>> body = parse_block();
+
+			std::unique_ptr<FunctionStatement> statement = std::make_unique<FunctionStatement>();
+			statement->name = *name;
+			statement->params = std::move(parameters);
+			statement->body = std::move(body);
+			return statement;
+		}
+
 		std::unique_ptr<Statement> parse_declaration()
 		{
 			try
 			{
+				if (advance_for_token_types({TokenType::FUN}))
+				{
+					return parse_function_declaration("function");
+				}
 				if (advance_for_token_types({TokenType::VAR}))
 				{
 					return parse_var_declaration();
