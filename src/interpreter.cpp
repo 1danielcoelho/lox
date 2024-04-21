@@ -337,6 +337,7 @@ void Lox::Interpreter::visit(FunctionStatement& statement)
 {
 	std::shared_ptr<Function> function = std::make_shared<Function>();
 	function->declaration = &statement;	   // TODO: Ugh, hopefully this doesn't get reallocated I guess?
+	function->closure = current_environment; // TODO: Argh, have to rethink the ownership of these environments
 
 	current_environment->define_variable(statement.name.lexeme, function);
 }

@@ -7,6 +7,7 @@
 namespace Lox
 {
 	struct FunctionStatement;
+	class Environment;
 
 	class Function : public Callable
 	{
@@ -17,6 +18,8 @@ namespace Lox
 		// It's also useful because this lets Function be copiable, which is important since we want
 		// to put it inside Lox::Object
 		FunctionStatement* declaration;
+
+		std::shared_ptr<Environment> closure;
 
 	public:
 		virtual Lox::Object call(Interpreter& interpreter, const std::vector<Lox::Object>& arguments) const override;
