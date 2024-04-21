@@ -96,7 +96,7 @@ namespace ParserInternal
 			throw create_error(peek(), error_message);
 		}
 
-		void discard_tokens_until_next_statement()
+		void synchronize()
 		{
 			advance();
 
@@ -608,7 +608,7 @@ namespace ParserInternal
 			}
 			catch ([[maybe_unused]] const Lox::ParseError& e)
 			{
-				discard_tokens_until_next_statement();
+				synchronize();
 				return {};
 			}
 		}
