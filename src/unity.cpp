@@ -2,6 +2,7 @@
 #include "environment.cpp"
 #include "error.cpp"
 #include "expression.cpp"
+#include "function.cpp"
 #include "interpreter.cpp"
 #include "main.cpp"
 #include "native_function.cpp"

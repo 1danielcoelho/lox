@@ -1,5 +1,7 @@
 #include "object.h"
+#include "function.h"
 #include "native_function.h"
+#include "statement.h"
 
 std::string Lox::to_string(const Lox::Object& variant)
 {
@@ -21,9 +23,13 @@ std::string Lox::to_string(const Lox::Object& variant)
 		{
 			return "";
 		}
-		std::string operator()([[maybe_unused]] Lox::NativeFunction* func)
+		std::string operator()(Lox::NativeFunction* func)
 		{
 			return "<native function at " + std::to_string((unsigned long long)func) + ">";
+		}
+		std::string operator()(const std::shared_ptr<Lox::Function>& func)
+		{
+			return "<fn " + func->declaration->name.lexeme + ">";
 		}
 	};
 
@@ -53,6 +59,10 @@ const Lox::Callable* Lox::as_callable(const Lox::Object& object)
 		const Lox::Callable* operator()(Lox::NativeFunction* func)
 		{
 			return func;
+		}
+		const Lox::Callable* operator()(const std::shared_ptr<Lox::Function>& func)
+		{
+			return static_cast<const Lox::Callable*>(func.get());
 		}
 	};
 

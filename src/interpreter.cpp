@@ -2,11 +2,13 @@
 #include "callable.h"
 #include "error.h"
 #include "expression.h"
+#include "function.h"
 #include "guard_value.h"
 #include "native_function.h"
 
 #include <cassert>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <vector>
 
@@ -55,6 +57,16 @@ Lox::Interpreter::Interpreter()
 	, current_environment(global_environment.get())
 {
 	global_environment->define_variable("clock", Lox::get_clock_function());
+}
+
+Lox::Environment* Lox::Interpreter::get_global_environment() const
+{
+	return global_environment.get();
+}
+
+Lox::Environment* Lox::Interpreter::get_current_environment() const
+{
+	return current_environment;
 }
 
 void Lox::Interpreter::interpret(const std::vector<std::unique_ptr<Statement>>& statements)
@@ -319,6 +331,14 @@ void Lox::Interpreter::visit(WhileStatement& statement)
 	{
 		execute_statement(*statement.body);
 	}
+}
+
+void Lox::Interpreter::visit(FunctionStatement& statement)
+{
+	std::shared_ptr<Function> function = std::make_shared<Function>();
+	function->declaration = &statement;	   // TODO: Ugh, hopefully this doesn't get reallocated I guess?
+
+	current_environment->define_variable(statement.name.lexeme, function);
 }
 
 std::optional<Lox::Object> Lox::Interpreter::evaluate_expression(Expression& expr)

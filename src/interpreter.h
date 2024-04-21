@@ -23,6 +23,9 @@ namespace Lox
 	public:
 		Interpreter();
 
+		Environment* get_global_environment() const;
+		Environment* get_current_environment() const;
+
 		void interpret(const std::vector<std::unique_ptr<Statement>>& statements);
 
 	public:
@@ -43,8 +46,9 @@ namespace Lox
 		virtual void visit(BlockStatement& statement) override;
 		virtual void visit(IfStatement& statement) override;
 		virtual void visit(WhileStatement& statement) override;
+		virtual void visit(FunctionStatement& statement) override;
 
-	protected:
+	public:
 		std::optional<Object> evaluate_expression(Expression& expr);
 		void execute_statement(Statement& statement);
 		void execute_block(std::vector<std::unique_ptr<Statement>>& statements, Environment& environment);
