@@ -17,14 +17,14 @@ namespace Lox
 		: public ExpressionVisitor
 		, public StatementVisitor
 	{
-		std::unique_ptr<Environment> global_environment;
-		Environment* current_environment = nullptr;
+		std::shared_ptr<Environment> global_environment;
+		std::weak_ptr<Environment> current_environment;
 
 	public:
 		Interpreter();
 
-		Environment* get_global_environment() const;
-		Environment* get_current_environment() const;
+		std::shared_ptr<Environment> get_global_environment() const;
+		std::shared_ptr<Environment> get_current_environment() const;
 
 		void interpret(const std::vector<std::unique_ptr<Statement>>& statements);
 
@@ -52,6 +52,6 @@ namespace Lox
 	public:
 		std::optional<Object> evaluate_expression(Expression& expr);
 		void execute_statement(Statement& statement);
-		void execute_block(std::vector<std::unique_ptr<Statement>>& statements, Environment& environment);
+		void execute_block(std::vector<std::unique_ptr<Statement>>& statements, const std::shared_ptr<Environment>& environment);
 	};
 }	 // namespace Lox

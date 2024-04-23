@@ -3,9 +3,12 @@
 #include "error.h"
 #include "interpreter.h"
 
+#include <memory>
+
 Lox::Object Lox::Function::call(Interpreter& interpreter, const std::vector<Lox::Object>& arguments) const
 {
-	std::unique_ptr<Environment> local_env = std::make_unique<Environment>(interpreter.get_global_environment());
+	Environment* parent_environment = closure.get();
+	std::shared_ptr<Environment> local_env = std::make_shared<Environment>(parent_environment);
 	for (int i = 0; i < declaration->params.size(); ++i)
 	{
 		const Token& token = declaration->params[i];
@@ -14,7 +17,7 @@ Lox::Object Lox::Function::call(Interpreter& interpreter, const std::vector<Lox:
 
 	try
 	{
-		interpreter.execute_block(declaration->body, *local_env);
+		interpreter.execute_block(declaration->body, local_env);
 	}
 	catch (const Lox::Return& return_value)
 	{

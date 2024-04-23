@@ -54,19 +54,19 @@ namespace InterpreterInternal
 
 Lox::Interpreter::Interpreter()
 	: global_environment(std::make_unique<Environment>())
-	, current_environment(global_environment.get())
+	, current_environment(global_environment)
 {
 	global_environment->define_variable("clock", Lox::get_clock_function());
 }
 
-Lox::Environment* Lox::Interpreter::get_global_environment() const
+std::shared_ptr<Lox::Environment> Lox::Interpreter::get_global_environment() const
 {
-	return global_environment.get();
+	return global_environment;
 }
 
-Lox::Environment* Lox::Interpreter::get_current_environment() const
+std::shared_ptr<Lox::Environment> Lox::Interpreter::get_current_environment() const
 {
-	return current_environment;
+	return current_environment.lock();
 }
 
 void Lox::Interpreter::interpret(const std::vector<std::unique_ptr<Statement>>& statements)
@@ -220,13 +220,13 @@ std::optional<Lox::Object> Lox::Interpreter::visit(BinaryExpression& expr)
 
 std::optional<Lox::Object> Lox::Interpreter::visit(VariableExpression& expr)
 {
-	return current_environment->get_variable(expr.name);
+	return current_environment.lock()->get_variable(expr.name);
 }
 
 std::optional<Lox::Object> Lox::Interpreter::visit(AssignmentExpression& expr)
 {
 	Lox::Object value = evaluate_expression(*expr.value).value();
-	current_environment->assign_variable(expr.name, value);
+	current_environment.lock()->assign_variable(expr.name, value);
 	return value;
 }
 
@@ -304,13 +304,14 @@ void Lox::Interpreter::visit(VariableDeclarationStatement& statement)
 		value = evaluate_expression(*statement.initializer).value();
 	}
 
-	current_environment->define_variable(statement.name.lexeme, value);
+	current_environment.lock()->define_variable(statement.name.lexeme, value);
 }
 
 void Lox::Interpreter::visit(BlockStatement& statement)
 {
-	std::unique_ptr<Environment> block_environment = std::make_unique<Environment>(current_environment);
-	execute_block(statement.statements, *block_environment);
+	Environment* parent_environment = current_environment.lock().get();
+	std::shared_ptr<Environment> block_environment = std::make_shared<Environment>(parent_environment);
+	execute_block(statement.statements, block_environment);
 }
 
 void Lox::Interpreter::visit(IfStatement& statement)
@@ -337,9 +338,9 @@ void Lox::Interpreter::visit(FunctionStatement& statement)
 {
 	std::shared_ptr<Function> function = std::make_shared<Function>();
 	function->declaration = &statement;	   // TODO: Ugh, hopefully this doesn't get reallocated I guess?
-	function->closure = current_environment; // TODO: Argh, have to rethink the ownership of these environments
+	function->closure = current_environment.lock();
 
-	current_environment->define_variable(statement.name.lexeme, function);
+	current_environment.lock()->define_variable(statement.name.lexeme, function);
 }
 
 void Lox::Interpreter::visit(ReturnStatement& statement)
@@ -363,9 +364,9 @@ void Lox::Interpreter::execute_statement(Statement& statement)
 	statement.accept(*this);
 }
 
-void Lox::Interpreter::execute_block(std::vector<std::unique_ptr<Statement>>& statements, Environment& environment)
+void Lox::Interpreter::execute_block(std::vector<std::unique_ptr<Statement>>& statements, const std::shared_ptr<Environment>& environment)
 {
-	ScopedGuardValue guard{current_environment, &environment};
+	ScopedGuardValue guard{current_environment, std::weak_ptr<Environment>{environment}};
 
 	for (const std::unique_ptr<Statement>& statement : statements)
 	{
