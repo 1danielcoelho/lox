@@ -1,22 +1,10 @@
-fun makeCounter() {
-  var i = 0;
-  fun count() {
-    i = i + 1;
-    print i;
+var a = "global";
+{
+  fun showA() {
+    print a;
   }
 
-  return count;
-}
-
-var counter = makeCounter();
-counter(); // "1".
-counter(); // "2".
-
-fun fib(n) {
-  if (n <= 1) return n;
-  return fib(n - 2) + fib(n - 1);
-}
-
-for (var i = 0; i < 20; i = i + 1) {
-  print fib(i);
+  showA();
+  var a = "block";
+  showA();
 }

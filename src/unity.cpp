@@ -8,6 +8,7 @@
 #include "native_function.cpp"
 #include "object.cpp"
 #include "parser.cpp"
+#include "resolver.cpp"
 #include "statement.cpp"
 #include "token.cpp"
 #include "tokenizer.cpp"
