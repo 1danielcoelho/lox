@@ -9,7 +9,7 @@ Lox::Environment::Environment(Lox::Environment* in_enclosing)
 
 void Lox::Environment::define_variable(const std::string& name, const Lox::Object& value)
 {
-	values.insert({name, value});
+	values[name] = value;
 }
 
 const Lox::Object& Lox::Environment::get_variable(const Lox::Token& token)
@@ -53,7 +53,7 @@ void Lox::Environment::assign_variable(const Lox::Token& token, const Lox::Objec
 
 void Lox::Environment::assign_variable_at(int distance, const Lox::Token& name, const Lox::Object& value)
 {
-	ancestor(distance)->values.insert({name.lexeme, value});
+	ancestor(distance)->values[name.lexeme] = value;
 }
 
 Lox::Environment* Lox::Environment::ancestor(int distance)

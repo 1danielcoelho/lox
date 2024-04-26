@@ -220,5 +220,5 @@ void Lox::Resolver::define(const Token& name)
 		return;
 	}
 
-	scopes.back().insert({name.lexeme, true});
+	scopes.back()[name.lexeme] = true;
 }

@@ -386,7 +386,7 @@ void Lox::Interpreter::execute_block(std::vector<std::unique_ptr<Statement>>& st
 
 void Lox::Interpreter::resolve(Lox::Expression& expr, int depth)
 {
-	locals.insert({&expr, depth});
+	locals[&expr] = depth;
 }
 
 std::optional<Lox::Object> Lox::Interpreter::lookup_variable(const Token& name, Expression& expr)
