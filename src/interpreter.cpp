@@ -3,8 +3,8 @@
 #include "error.h"
 #include "expression.h"
 #include "function.h"
-#include "guard_value.h"
 #include "native_function.h"
+#include "scoped_guard_value.h"
 
 #include <cassert>
 #include <iostream>
@@ -220,13 +220,23 @@ std::optional<Lox::Object> Lox::Interpreter::visit(BinaryExpression& expr)
 
 std::optional<Lox::Object> Lox::Interpreter::visit(VariableExpression& expr)
 {
-	return current_environment.lock()->get_variable(expr.name);
+	return lookup_variable(expr.name, expr);
 }
 
 std::optional<Lox::Object> Lox::Interpreter::visit(AssignmentExpression& expr)
 {
 	Lox::Object value = evaluate_expression(*expr.value).value();
-	current_environment.lock()->assign_variable(expr.name, value);
+
+	auto iter = locals.find(&expr);
+	if (iter != locals.end())
+	{
+		get_current_environment()->assign_variable_at(iter->second, expr.name, value);
+	}
+	else
+	{
+		get_global_environment()->assign_variable(expr.name, value);
+	}
+
 	return value;
 }
 
@@ -371,5 +381,23 @@ void Lox::Interpreter::execute_block(std::vector<std::unique_ptr<Statement>>& st
 	for (const std::unique_ptr<Statement>& statement : statements)
 	{
 		execute_statement(*statement);
+	}
+}
+
+void Lox::Interpreter::resolve(Lox::Expression& expr, int depth)
+{
+	locals.insert({&expr, depth});
+}
+
+std::optional<Lox::Object> Lox::Interpreter::lookup_variable(const Token& name, Expression& expr)
+{
+	auto iter = locals.find(&expr);
+	if (iter != locals.end())
+	{
+		return get_current_environment()->get_variable_at(iter->second, name.lexeme);
+	}
+	else
+	{
+		return get_global_environment()->get_variable(name);
 	}
 }

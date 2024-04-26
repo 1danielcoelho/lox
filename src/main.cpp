@@ -3,6 +3,7 @@
 #include "expression.h"
 #include "interpreter.h"
 #include "parser.h"
+#include "resolver.h"
 #include "tokenizer.h"
 
 #include <filesystem>
@@ -22,6 +23,14 @@ int run(const std::string& source)
 	}
 
 	static Lox::Interpreter interpreter;
+
+	Lox::Resolver resolver{interpreter};
+	resolver.resolve(statements);
+	if (Lox::had_error())
+	{
+		return Lox::ERROR_CODE_DATAERR;
+	}
+
 	interpreter.interpret(statements);
 
 	if (Lox::had_error())

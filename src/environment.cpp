@@ -28,6 +28,11 @@ const Lox::Object& Lox::Environment::get_variable(const Lox::Token& token)
 	throw Lox::RuntimeError{token, "Cannot get undefined variable '" + token.lexeme + "'"};
 }
 
+const Lox::Object& Lox::Environment::get_variable_at(int distance, const std::string& name)
+{
+	return ancestor(distance)->values.at(name);
+}
+
 void Lox::Environment::assign_variable(const Lox::Token& token, const Lox::Object& value)
 {
 	auto iter = values.find(token.lexeme);
@@ -44,4 +49,20 @@ void Lox::Environment::assign_variable(const Lox::Token& token, const Lox::Objec
 	}
 
 	throw Lox::RuntimeError{token, "Cannot assign to undefined variable '" + token.lexeme + "'"};
+}
+
+void Lox::Environment::assign_variable_at(int distance, const Lox::Token& name, const Lox::Object& value)
+{
+	ancestor(distance)->values.insert({name.lexeme, value});
+}
+
+Lox::Environment* Lox::Environment::ancestor(int distance)
+{
+	Lox::Environment* env = this;
+	for (int i = 0; i < distance; ++i)
+	{
+		env = env->enclosing_environment;
+	}
+
+	return env;
 }

@@ -7,6 +7,7 @@
 
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace Lox
@@ -19,6 +20,8 @@ namespace Lox
 	{
 		std::shared_ptr<Environment> global_environment;
 		std::weak_ptr<Environment> current_environment;
+
+		std::unordered_map<Expression*, int> locals;
 
 	public:
 		Interpreter();
@@ -53,5 +56,7 @@ namespace Lox
 		std::optional<Object> evaluate_expression(Expression& expr);
 		void execute_statement(Statement& statement);
 		void execute_block(std::vector<std::unique_ptr<Statement>>& statements, const std::shared_ptr<Environment>& environment);
+		void resolve(Expression& expr, int depth);
+		std::optional<Object> lookup_variable(const Token& name, Expression& expr);
 	};
 }	 // namespace Lox
