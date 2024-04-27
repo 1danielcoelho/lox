@@ -4,6 +4,7 @@ CALL "%~dp0setup_for_dev.bat"
 setlocal
 
 set BUILD_DIR=%~dp0build\
+set ENTRY_FILE=..\src\jlox\unity.cpp
 
 @echo Setting up build directory
 if not exist %BUILD_DIR%\ (
@@ -12,7 +13,7 @@ if not exist %BUILD_DIR%\ (
 pushd %BUILD_DIR%
 
 @REM @echo Compiling with Clang
-@REM clang   ..\src\unity.cpp ^
+@REM clang   %ENTRY_FILE% ^
 @REM         -std=c++20 ^
 @REM         -O0 ^
 @REM         -g ^
@@ -20,7 +21,7 @@ pushd %BUILD_DIR%
 @REM         -o main.exe
 
 @echo Compiling with MSVC
-cl  ..\src\unity.cpp ^
+cl  %ENTRY_FILE% ^
     /std:c++20 ^
     /nologo ^
     /EHsc ^
