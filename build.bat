@@ -4,7 +4,7 @@ CALL "%~dp0setup_for_dev.bat"
 setlocal
 
 set BUILD_DIR=%~dp0build\
-set ENTRY_FILE=..\src\jlox\unity.cpp
+set ENTRY_FILE=..\src\clox\unity.cpp
 
 @echo Setting up build directory
 if not exist %BUILD_DIR%\ (
