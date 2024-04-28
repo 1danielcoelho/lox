@@ -15,6 +15,7 @@ namespace Lox
 
 	class Chunk
 	{
+	public:
 		std::vector<u8> code;
 		std::vector<u32> lines;
 		std::vector<Value> constants;
