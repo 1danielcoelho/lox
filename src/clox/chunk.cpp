@@ -27,12 +27,37 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 	{
 		case Lox::Op::RETURN:
 		{
-			return print_simple_instruction("OP_RETURN", offset);
+			return print_simple_instruction("RETURN", offset);
+			break;
+		}
+		case Lox::Op::ADD:
+		{
+			return print_simple_instruction("ADD", offset);
+			break;
+		}
+		case Lox::Op::SUBTRACT:
+		{
+			return print_simple_instruction("SUBTRACT", offset);
+			break;
+		}
+		case Lox::Op::MULTIPLY:
+		{
+			return print_simple_instruction("MULTIPLY", offset);
+			break;
+		}
+		case Lox::Op::DIVIDE:
+		{
+			return print_simple_instruction("DIVIDE", offset);
 			break;
 		}
 		case Lox::Op::CONSTANT:
 		{
-			return print_constant_instruction("OP_CONSTANT", offset);
+			return print_constant_instruction("CONSTANT", offset);
+			break;
+		}
+		case Lox::Op::NEGATE:
+		{
+			return print_simple_instruction("NEGATE", offset);
 			break;
 		}
 		default:

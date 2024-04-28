@@ -11,9 +11,21 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char* argv[])
 	c.write_chunk((u8)Lox::Op::CONSTANT, 123);
 	c.write_chunk((u8)constant_index, 123);
 
-	c.write_chunk((u8)Lox::Op::RETURN, 123);
+	constant_index = c.add_constant(3.4);
+	c.write_chunk((u8)Lox::Op::CONSTANT, 123);
+	c.write_chunk((u8)constant_index, 123);
 
-	c.disassemble_chunk("test chunk");
+	c.write_chunk((u8)Lox::Op::ADD, 123);
+
+	constant_index = c.add_constant(5.6);
+	c.write_chunk((u8)Lox::Op::CONSTANT, 123);
+	c.write_chunk((u8)constant_index, 123);
+
+	c.write_chunk((u8)Lox::Op::DIVIDE, 123);
+
+	c.write_chunk((u8)Lox::Op::NEGATE, 123);
+
+	c.write_chunk((u8)Lox::Op::RETURN, 123);
 
 	Lox::interpret(c);
 	Lox::freeVM();

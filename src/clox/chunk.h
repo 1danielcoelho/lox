@@ -10,6 +10,11 @@ namespace Lox
 	enum class Op : u8
 	{
 		CONSTANT,
+		ADD,
+		SUBTRACT,
+		MULTIPLY,
+		DIVIDE,
+		NEGATE,
 		RETURN
 	};
 
