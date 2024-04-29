@@ -1,3 +1,5 @@
 #include "chunk.cpp"
+#include "compiler.cpp"
 #include "main.cpp"
+#include "scanner.cpp"
 #include "vm.cpp"

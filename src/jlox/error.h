@@ -27,12 +27,12 @@ namespace Lox
 	// https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html
 	enum ErrorCodes
 	{
-		ERROR_CODE_SUCCESS = 0,
-		ERROR_CODE_USAGE = 64,
-		ERROR_CODE_DATAERR = 65,
-		ERROR_CODE_NOINPUT = 66,
-		ERROR_CODE_SOFTWARE = 70,
-		ERROR_CODE_IOERR = 74,
+		SUCCESS = 0,
+		USAGE = 64,
+		DATAERR = 65,
+		NOINPUT = 66,
+		SOFTWARE = 70,
+		IOERR = 74,
 	};
 
 	void report_error(int line, const std::string& message);

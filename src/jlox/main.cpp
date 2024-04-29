@@ -19,7 +19,7 @@ int run(const std::string& source)
 	std::vector<std::unique_ptr<Lox::Statement>> statements = Lox::parse(tokens);
 	if (Lox::had_error())
 	{
-		return Lox::ERROR_CODE_DATAERR;
+		return Lox::DATAERR;
 	}
 
 	static Lox::Interpreter interpreter;
@@ -28,20 +28,20 @@ int run(const std::string& source)
 	resolver.resolve(statements);
 	if (Lox::had_error())
 	{
-		return Lox::ERROR_CODE_DATAERR;
+		return Lox::DATAERR;
 	}
 
 	interpreter.interpret(statements);
 
 	if (Lox::had_error())
 	{
-		return Lox::ERROR_CODE_DATAERR;
+		return Lox::DATAERR;
 	}
 	else if (Lox::had_runtime_error())
 	{
-		return Lox::ERROR_CODE_SOFTWARE;
+		return Lox::SOFTWARE;
 	}
-	return Lox::ERROR_CODE_SUCCESS;
+	return Lox::SUCCESS;
 }
 
 int run_file(const char* arg)
@@ -49,13 +49,13 @@ int run_file(const char* arg)
 	fs::path path{arg};
 	if (!fs::is_regular_file(path))
 	{
-		return Lox::ERROR_CODE_NOINPUT;
+		return Lox::NOINPUT;
 	}
 
 	std::ifstream file_stream{path};
 	if (!file_stream.is_open())
 	{
-		return Lox::ERROR_CODE_IOERR;
+		return Lox::IOERR;
 	}
 
 	std::stringstream sstream;
@@ -85,7 +85,7 @@ int run_prompt()
 		Lox::clear_error();
 	}
 
-	return Lox::ERROR_CODE_SUCCESS;
+	return Lox::SUCCESS;
 }
 
 int main(int argc, char** argv)
@@ -94,7 +94,7 @@ int main(int argc, char** argv)
 	{
 		std::cout << "Use one or no argument" << std::endl;
 
-		return Lox::ERROR_CODE_USAGE;
+		return Lox::USAGE;
 	}
 	else if (argc == 2)
 	{

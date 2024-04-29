@@ -2,6 +2,8 @@
 
 #include "chunk.h"
 
+#include <string>
+
 namespace Lox
 {
 	enum class InterpretResult
@@ -12,6 +14,6 @@ namespace Lox
 	};
 
 	void initVM();
-    InterpretResult interpret(const Chunk& chunk);
+	InterpretResult interpret(const char* source);
 	void freeVM();
 }

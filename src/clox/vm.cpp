@@ -1,4 +1,5 @@
 #include "vm.h"
+#include "compiler.h"
 
 #include <cassert>
 #include <iostream>
@@ -120,9 +121,11 @@ void Lox::initVM()
 {
 }
 
-Lox::InterpretResult Lox::interpret(const Lox::Chunk& chunk)
+Lox::InterpretResult Lox::interpret(const char* source)
 {
 	using namespace VMImpl;
+
+	Lox::compile(source);
 
 	vm.chunk = &chunk;
 	vm.ip = vm.chunk->code.data();
