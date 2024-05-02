@@ -127,8 +127,8 @@ Lox::InterpretResult Lox::interpret(const char* source)
 
 	Lox::compile(source);
 
-	vm.chunk = &chunk;
-	vm.ip = vm.chunk->code.data();
+	// vm.chunk = &chunk;
+	// vm.ip = vm.chunk->code.data();
 	return run();
 }
 
