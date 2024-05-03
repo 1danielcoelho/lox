@@ -23,7 +23,7 @@ void Lox::compile(const char* source)
 			std::cout << "   | ";
 		}
 
-		std::cout << std::format("{:2} '{:{}}'", (int)token.type, token.start, token.length) << std::endl;
+		std::cout << std::format("{:2} '{:.{}}'", (int)token.type, token.start, token.length) << std::endl;
 
 		if (token.type == TokenType::EOF_)
 		{
