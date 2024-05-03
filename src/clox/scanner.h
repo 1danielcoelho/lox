@@ -64,6 +64,7 @@ namespace Lox
 		i32 line = 1;
 
 	public:
+		Token() = default;
 		Token(TokenType in_type);
         static Token error_token(const char* message);
 	};

@@ -2,5 +2,7 @@
 
 namespace Lox
 {
-	void compile(const char* source);
+	struct Chunk;
+
+	bool compile(const char* source, Chunk& chunk);
 }

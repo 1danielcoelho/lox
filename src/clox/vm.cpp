@@ -125,10 +125,15 @@ Lox::InterpretResult Lox::interpret(const char* source)
 {
 	using namespace VMImpl;
 
-	Lox::compile(source);
+	Chunk chunk;
+	if (!Lox::compile(source, chunk))
+	{
+		return Lox::InterpretResult::COMPILE_ERROR;
+	}
 
-	// vm.chunk = &chunk;
-	// vm.ip = vm.chunk->code.data();
+	vm.chunk = &chunk;
+	vm.ip = vm.chunk->code.data();
+
 	return run();
 }
 
