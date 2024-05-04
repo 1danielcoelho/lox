@@ -127,7 +127,7 @@ namespace VMImpl
 				{
 					Lox::Value b = pop();
 					Lox::Value a = pop();
-					push(a == b);
+					push(Lox::values_equal(a, b));
 					break;
 				}
 				case Lox::Op::GREATER:

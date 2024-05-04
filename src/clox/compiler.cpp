@@ -1,5 +1,6 @@
 #include "compiler.h"
 #include "chunk.h"
+#include "object.h"
 #include "scanner.h"
 
 #include <array>
@@ -308,6 +309,14 @@ namespace CompilerImpl
 		}
 	}
 
+	void string()
+	{
+		Lox::ObjectString* new_str = new ObjectString();
+		new_str->string = std::string{parser.previous.start + 1, (size_t)(parser.previous.length - 2)};
+
+		emit_constant(new_str);
+	}
+
 	// Will parse all expressions at 'prec' level or higher (higher value, so CALL > UNARY)
 	void parse_precedence(Precedence prec)
 	{
@@ -381,7 +390,7 @@ namespace CompilerImpl
 		result[(u8)TokenType::LESS]          = {nullptr,  binary,   Precedence::COMPARISON};
 		result[(u8)TokenType::LESS_EQUAL]    = {nullptr,  binary,   Precedence::COMPARISON};
 		result[(u8)TokenType::IDENTIFIER]    = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::STRING]        = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::STRING]        = {string,   nullptr,  Precedence::NONE};
 		result[(u8)TokenType::NUMBER]        = {number,   nullptr,  Precedence::NONE};
 		result[(u8)TokenType::AND]           = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::CLASS]         = {nullptr,  nullptr,  Precedence::NONE};
