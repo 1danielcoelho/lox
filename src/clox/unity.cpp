@@ -2,4 +2,5 @@
 #include "compiler.cpp"
 #include "main.cpp"
 #include "scanner.cpp"
+#include "value.cpp"
 #include "vm.cpp"

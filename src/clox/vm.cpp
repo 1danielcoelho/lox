@@ -2,7 +2,9 @@
 #include "compiler.h"
 
 #include <cassert>
+#include <format>
 #include <iostream>
+#include <string>
 
 namespace VMImpl
 {
@@ -22,6 +24,19 @@ namespace VMImpl
 
 	VM vm;
 
+	void runtime_error(const char* message)
+	{
+		std::cerr << message << std::endl;
+
+		// The -1 is because the interpreter advances past each instruction before executing it,
+		// so if we failed now the bad line was one before the current one
+		size_t instruction = vm.ip - vm.chunk->code.data() - 1;
+		i32 line = vm.chunk->lines[instruction];
+		std::cerr << std::format("[line {}] in script", line) << std::endl;
+
+		vm.stack.clear();
+	}
+
 	void push(Lox::Value value)
 	{
 		vm.stack.push_back(value);
@@ -32,6 +47,11 @@ namespace VMImpl
 		Lox::Value last = vm.stack.back();
 		vm.stack.pop_back();
 		return last;
+	}
+
+	Lox::Value peek(i32 distance)
+	{
+		return vm.stack[vm.stack.size() - 1 - distance];
 	}
 
 	u8 read_byte()
@@ -51,7 +71,7 @@ namespace VMImpl
 #if DEBUG_TRACE_EXECUTION
 			for (const Lox::Value& value : vm.stack)
 			{
-				std::cout << "[ " << value << " ]";
+				std::cout << "[ " << Lox::to_string(value) << " ]";
 			}
 			std::cout << std::endl;
 
@@ -63,41 +83,67 @@ namespace VMImpl
 			{
 				case Lox::Op::RETURN:
 				{
-					std::cout << pop() << std::endl;
+					std::cout << Lox::to_string(pop()) << std::endl;
 					return Lox::InterpretResult::OK;
 					break;
 				}
 				case Lox::Op::ADD:
 				{
+					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					{
+						runtime_error("Operands must be numbers");
+						return Lox::InterpretResult::RUNTIME_ERROR;
+					}
 					Lox::Value b = pop();
 					Lox::Value a = pop();
-					push(a + b);
+					push(std::get<f64>(a) + std::get<f64>(b));
 					break;
 				}
 				case Lox::Op::SUBTRACT:
 				{
+					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					{
+						runtime_error("Operands must be numbers");
+						return Lox::InterpretResult::RUNTIME_ERROR;
+					}
 					Lox::Value b = pop();
 					Lox::Value a = pop();
-					push(a - b);
+					push(std::get<f64>(a) - std::get<f64>(b));
 					break;
 				}
 				case Lox::Op::MULTIPLY:
 				{
+					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					{
+						runtime_error("Operands must be numbers");
+						return Lox::InterpretResult::RUNTIME_ERROR;
+					}
 					Lox::Value b = pop();
 					Lox::Value a = pop();
-					push(a * b);
+					push(std::get<f64>(a) * std::get<f64>(b));
 					break;
 				}
 				case Lox::Op::DIVIDE:
 				{
+					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					{
+						runtime_error("Operands must be numbers");
+						return Lox::InterpretResult::RUNTIME_ERROR;
+					}
 					Lox::Value b = pop();
 					Lox::Value a = pop();
-					push(a / b);
+					push(std::get<f64>(a) / std::get<f64>(b));
 					break;
 				}
 				case Lox::Op::NEGATE:
 				{
-					push(-pop());
+					if (!std::holds_alternative<f64>(peek(0)))
+					{
+						runtime_error("Operand must be a number");
+						return Lox::InterpretResult::RUNTIME_ERROR;
+					}
+
+					push(-std::get<f64>(pop()));
 					break;
 				}
 				case Lox::Op::CONSTANT:

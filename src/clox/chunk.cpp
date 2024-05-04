@@ -91,6 +91,6 @@ i32 Lox::Chunk::print_constant_instruction(const char* op_name, i32 offset) cons
 	u8 constant_index = code[offset + 1];
 	std::cout << op_name << " ";
 	std::cout << std::to_string(constant_index) << " '";
-	std::cout << constants[constant_index] << "'" << std::endl;
+	std::cout << to_string(constants[constant_index]) << "'" << std::endl;
 	return offset + 2;
 }

@@ -2,9 +2,12 @@
 
 #include "common.h"
 
+#include <string>
+#include <variant>
+
 namespace Lox
 {
-	using Value = f64;
+	using Value = std::variant<bool, nullptr_t, f64>;
 
-    // TODO: will need a print_value or something at some point, likely a visitor?
+	std::string to_string(const Value& value);
 }
