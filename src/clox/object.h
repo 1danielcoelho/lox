@@ -9,6 +9,9 @@ namespace Lox
 	class Object
 	{
 	public:
+		Object* next = nullptr;
+
+	public:
 		virtual ~Object(){};
 		virtual std::string to_string() const;
 	};
@@ -22,5 +25,6 @@ namespace Lox
 		virtual std::string to_string() const override;
 	};
 
-	// TODO: There was supposed to be an "allocate_object" function here but we haven't needed it yet
+	template<typename T>
+	T* allocate_object();
 }

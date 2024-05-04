@@ -1,5 +1,6 @@
 #include "vm.h"
 #include "compiler.h"
+#include "memory.h"
 #include "object.h"
 
 #include <cassert>
@@ -7,23 +8,14 @@
 #include <iostream>
 #include <string>
 
+namespace Lox
+{
+	VM vm;
+}
+
 namespace VMImpl
 {
-	// TODO: Not quite sure why I need a class if I could just store internal state here...
-	// on the book the class is declared in the header, and it seems that external code will
-	// reference VM internals though?
-	class VM
-	{
-	public:
-		const Lox::Chunk* chunk = nullptr;
-		const u8* ip = nullptr;	   // Points to the *next* instruction to execute
-
-		// TODO: Maybe use a std::array and fixed size? This looks simple though. It would be neat to see the
-		// performance benefit of having the stack on the actual, uh, stack, later
-		std::vector<Lox::Value> stack;
-	};
-
-	VM vm;
+	using namespace Lox;
 
 	void runtime_error(const char* message)
 	{
@@ -38,7 +30,7 @@ namespace VMImpl
 		vm.stack.clear();
 	}
 
-	bool is_falsey(Lox::Value value)
+	bool is_falsey(Value value)
 	{
 		if (std::holds_alternative<nullptr_t>(value))
 		{
@@ -53,19 +45,19 @@ namespace VMImpl
 		return false;
 	}
 
-	void push(Lox::Value value)
+	void push(Value value)
 	{
 		vm.stack.push_back(value);
 	}
 
-	Lox::Value pop()
+	Value pop()
 	{
-		Lox::Value last = vm.stack.back();
+		Value last = vm.stack.back();
 		vm.stack.pop_back();
 		return last;
 	}
 
-	Lox::Value peek(i32 distance)
+	Value peek(i32 distance)
 	{
 		return vm.stack[vm.stack.size() - 1 - distance];
 	}
@@ -75,97 +67,97 @@ namespace VMImpl
 		return *vm.ip++;
 	}
 
-	Lox::Value read_constant()
+	Value read_constant()
 	{
 		return vm.chunk->constants[read_byte()];
 	}
 
 	void concatenate()
 	{
-		Lox::ObjectString* b = as_string(pop());
-		Lox::ObjectString* a = as_string(pop());
+		ObjectString* b = as_string(pop());
+		ObjectString* a = as_string(pop());
 
-		Lox::ObjectString* concat = new Lox::ObjectString();
+		ObjectString* concat = allocate_object<ObjectString>();
 		concat->string = a->string + b->string;
 		push(concat);
 	}
 
-	Lox::InterpretResult run()
+	InterpretResult run()
 	{
 		while (true)
 		{
 #if DEBUG_TRACE_EXECUTION
-			for (const Lox::Value& value : vm.stack)
+			for (const Value& value : vm.stack)
 			{
-				std::cout << "[ " << Lox::to_string(value) << " ]";
+				std::cout << "[ " << to_string(value) << " ]";
 			}
 			std::cout << std::endl;
 
 			vm.chunk->disassemble_instruction((i32)(vm.ip - vm.chunk->code.data()));
 #endif
 
-			Lox::Op instruction = static_cast<Lox::Op>(read_byte());
+			Op instruction = static_cast<Op>(read_byte());
 			switch (instruction)
 			{
-				case Lox::Op::RETURN:
+				case Op::RETURN:
 				{
-					std::cout << Lox::to_string(pop()) << std::endl;
-					return Lox::InterpretResult::OK;
+					std::cout << to_string(pop()) << std::endl;
+					return InterpretResult::OK;
 					break;
 				}
-				case Lox::Op::CONSTANT:
+				case Op::CONSTANT:
 				{
-					Lox::Value constant = read_constant();
+					Value constant = read_constant();
 					push(constant);
 					break;
 				}
-				case Lox::Op::NIL:
+				case Op::NIL:
 				{
 					push(nullptr);
 					break;
 				}
-				case Lox::Op::TRUE:
+				case Op::TRUE:
 				{
 					push(true);
 					break;
 				}
-				case Lox::Op::FALSE:
+				case Op::FALSE:
 				{
 					push(false);
 					break;
 				}
-				case Lox::Op::EQUAL:
+				case Op::EQUAL:
 				{
-					Lox::Value b = pop();
-					Lox::Value a = pop();
-					push(Lox::values_equal(a, b));
+					Value b = pop();
+					Value a = pop();
+					push(values_equal(a, b));
 					break;
 				}
-				case Lox::Op::GREATER:
+				case Op::GREATER:
 				{
 					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
-						return Lox::InterpretResult::RUNTIME_ERROR;
+						return InterpretResult::RUNTIME_ERROR;
 					}
-					Lox::Value b = pop();
-					Lox::Value a = pop();
+					Value b = pop();
+					Value a = pop();
 					push(std::get<f64>(a) > std::get<f64>(b));
 					break;
 				}
-				case Lox::Op::LESS:
+				case Op::LESS:
 				{
 					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
-						return Lox::InterpretResult::RUNTIME_ERROR;
+						return InterpretResult::RUNTIME_ERROR;
 					}
-					Lox::Value b = pop();
-					Lox::Value a = pop();
+					Value b = pop();
+					Value a = pop();
 					push(std::get<f64>(a) < std::get<f64>(b));
 					break;
 				}
-				case Lox::Op::ADD:
+				case Op::ADD:
 				{
 					if (is_string(peek(0)) && is_string(peek(1)))
 					{
@@ -173,65 +165,65 @@ namespace VMImpl
 					}
 					else if (is_number(peek(0)) && is_number(peek(1)))
 					{
-						Lox::Value b = pop();
-						Lox::Value a = pop();
+						Value b = pop();
+						Value a = pop();
 						push(std::get<f64>(a) + std::get<f64>(b));
 					}
 					else
 					{
 						runtime_error("Operands must be numbers");
-						return Lox::InterpretResult::RUNTIME_ERROR;
+						return InterpretResult::RUNTIME_ERROR;
 					}
 
 					break;
 				}
-				case Lox::Op::SUBTRACT:
+				case Op::SUBTRACT:
 				{
 					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
-						return Lox::InterpretResult::RUNTIME_ERROR;
+						return InterpretResult::RUNTIME_ERROR;
 					}
-					Lox::Value b = pop();
-					Lox::Value a = pop();
+					Value b = pop();
+					Value a = pop();
 					push(std::get<f64>(a) - std::get<f64>(b));
 					break;
 				}
-				case Lox::Op::MULTIPLY:
+				case Op::MULTIPLY:
 				{
 					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
-						return Lox::InterpretResult::RUNTIME_ERROR;
+						return InterpretResult::RUNTIME_ERROR;
 					}
-					Lox::Value b = pop();
-					Lox::Value a = pop();
+					Value b = pop();
+					Value a = pop();
 					push(std::get<f64>(a) * std::get<f64>(b));
 					break;
 				}
-				case Lox::Op::DIVIDE:
+				case Op::DIVIDE:
 				{
 					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
-						return Lox::InterpretResult::RUNTIME_ERROR;
+						return InterpretResult::RUNTIME_ERROR;
 					}
-					Lox::Value b = pop();
-					Lox::Value a = pop();
+					Value b = pop();
+					Value a = pop();
 					push(std::get<f64>(a) / std::get<f64>(b));
 					break;
 				}
-				case Lox::Op::NOT:
+				case Op::NOT:
 				{
 					push(is_falsey(pop()));
 					break;
 				}
-				case Lox::Op::NEGATE:
+				case Op::NEGATE:
 				{
 					if (!is_number(peek(0)))
 					{
 						runtime_error("Operand must be a number");
-						return Lox::InterpretResult::RUNTIME_ERROR;
+						return InterpretResult::RUNTIME_ERROR;
 					}
 
 					push(-std::get<f64>(pop()));
@@ -246,7 +238,7 @@ namespace VMImpl
 	}
 }	 // namespace VMImpl
 
-void Lox::initVM()
+void Lox::init_VM()
 {
 }
 
@@ -266,6 +258,7 @@ Lox::InterpretResult Lox::interpret(const char* source)
 	return run();
 }
 
-void Lox::freeVM()
+void Lox::free_VM()
 {
+	free_objects();
 }

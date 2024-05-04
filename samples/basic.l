@@ -1,1 +1,1 @@
-"hello" + " world"
+"st" + "ri" + "ng"

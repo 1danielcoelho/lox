@@ -84,7 +84,7 @@ void repl()
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] const char* argv[])
 {
-	Lox::initVM();
+	Lox::init_VM();
 
 	Lox::Chunk c;
 
@@ -102,6 +102,6 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] const char* argv[])
 		exit(Lox::ERROR_CODE_USAGE);
 	}
 
-	Lox::freeVM();
+	Lox::free_VM();
 	return Lox::ERROR_CODE_SUCCESS;
 }
