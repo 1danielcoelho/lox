@@ -37,6 +37,21 @@ namespace VMImpl
 		vm.stack.clear();
 	}
 
+	bool is_falsey(Lox::Value value)
+	{
+		if (std::holds_alternative<nullptr_t>(value))
+		{
+			return true;
+		}
+
+		if (std::holds_alternative<bool>(value))
+		{
+			return !std::get<bool>(value);
+		}
+
+		return false;
+	}
+
 	void push(Lox::Value value)
 	{
 		vm.stack.push_back(value);
@@ -87,6 +102,58 @@ namespace VMImpl
 					return Lox::InterpretResult::OK;
 					break;
 				}
+				case Lox::Op::CONSTANT:
+				{
+					Lox::Value constant = read_constant();
+					push(constant);
+					break;
+				}
+				case Lox::Op::NIL:
+				{
+					push(nullptr);
+					break;
+				}
+				case Lox::Op::TRUE:
+				{
+					push(true);
+					break;
+				}
+				case Lox::Op::FALSE:
+				{
+					push(false);
+					break;
+				}
+				case Lox::Op::EQUAL:
+				{
+					Lox::Value b = pop();
+					Lox::Value a = pop();
+					push(a == b);
+					break;
+				}
+				case Lox::Op::GREATER:
+				{
+					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					{
+						runtime_error("Operands must be numbers");
+						return Lox::InterpretResult::RUNTIME_ERROR;
+					}
+					Lox::Value b = pop();
+					Lox::Value a = pop();
+					push(std::get<f64>(a) > std::get<f64>(b));
+					break;
+				}
+				case Lox::Op::LESS:
+				{
+					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					{
+						runtime_error("Operands must be numbers");
+						return Lox::InterpretResult::RUNTIME_ERROR;
+					}
+					Lox::Value b = pop();
+					Lox::Value a = pop();
+					push(std::get<f64>(a) < std::get<f64>(b));
+					break;
+				}
 				case Lox::Op::ADD:
 				{
 					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
@@ -135,6 +202,11 @@ namespace VMImpl
 					push(std::get<f64>(a) / std::get<f64>(b));
 					break;
 				}
+				case Lox::Op::NOT:
+				{
+					push(is_falsey(pop()));
+					break;
+				}
 				case Lox::Op::NEGATE:
 				{
 					if (!std::holds_alternative<f64>(peek(0)))
@@ -144,12 +216,6 @@ namespace VMImpl
 					}
 
 					push(-std::get<f64>(pop()));
-					break;
-				}
-				case Lox::Op::CONSTANT:
-				{
-					Lox::Value constant = read_constant();
-					push(constant);
 					break;
 				}
 				default:

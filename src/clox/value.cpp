@@ -18,7 +18,7 @@ std::string Lox::to_string(const Lox::Value& variant)
 		}
 		std::string operator()([[maybe_unused]] std::nullptr_t n)
 		{
-			return "";
+			return "nil";
 		}
 	};
 

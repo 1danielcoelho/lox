@@ -30,6 +30,41 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			return print_simple_instruction("RETURN", offset);
 			break;
 		}
+		case Lox::Op::CONSTANT:
+		{
+			return print_constant_instruction("CONSTANT", offset);
+			break;
+		}
+		case Lox::Op::NIL:
+		{
+			return print_simple_instruction("NIL", offset);
+			break;
+		}
+		case Lox::Op::TRUE:
+		{
+			return print_simple_instruction("TRUE", offset);
+			break;
+		}
+		case Lox::Op::FALSE:
+		{
+			return print_simple_instruction("FALSE", offset);
+			break;
+		}
+		case Lox::Op::EQUAL:
+		{
+			return print_simple_instruction("EQUAL", offset);
+			break;
+		}
+		case Lox::Op::GREATER:
+		{
+			return print_simple_instruction("GREATER", offset);
+			break;
+		}
+		case Lox::Op::LESS:
+		{
+			return print_simple_instruction("LESS", offset);
+			break;
+		}
 		case Lox::Op::ADD:
 		{
 			return print_simple_instruction("ADD", offset);
@@ -50,9 +85,9 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			return print_simple_instruction("DIVIDE", offset);
 			break;
 		}
-		case Lox::Op::CONSTANT:
+		case Lox::Op::NOT:
 		{
-			return print_constant_instruction("CONSTANT", offset);
+			return print_simple_instruction("NOT", offset);
 			break;
 		}
 		case Lox::Op::NEGATE:

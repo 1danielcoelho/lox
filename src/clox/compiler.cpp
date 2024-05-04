@@ -185,6 +185,11 @@ namespace CompilerImpl
 		// Emit the operator instruction
 		switch (op_type)
 		{
+			case TokenType::BANG:
+			{
+				emit_byte((u8)Op::NOT);
+				break;
+			}
 			case TokenType::MINUS:
 			{
 				emit_byte((u8)Op::NEGATE);
@@ -208,26 +213,99 @@ namespace CompilerImpl
 		const ParseRule* rule = get_rule(op_type);
 		parse_precedence((Precedence)((u8)rule->precedence + 1));
 
-		// clang-format off
-		switch(op_type)
+		switch (op_type)
 		{
-			case TokenType::PLUS: 		emit_byte((u8)Op::ADD); break;
-			case TokenType::MINUS: 		emit_byte((u8)Op::SUBTRACT); break;
-			case TokenType::STAR: 		emit_byte((u8)Op::MULTIPLY); break;
-			case TokenType::SLASH: 		emit_byte((u8)Op::DIVIDE); break;
+			case TokenType::PLUS:
+			{
+				emit_byte((u8)Op::ADD);
+				break;
+			}
+			case TokenType::MINUS:
+			{
+				emit_byte((u8)Op::SUBTRACT);
+				break;
+			}
+			case TokenType::STAR:
+			{
+				emit_byte((u8)Op::MULTIPLY);
+				break;
+			}
+			case TokenType::SLASH:
+			{
+				emit_byte((u8)Op::DIVIDE);
+				break;
+			}
+			case TokenType::BANG_EQUAL:
+			{
+				emit_bytes((u8)Op::EQUAL, (u8)Op::NOT);
+				break;
+			}
+			case TokenType::EQUAL_EQUAL:
+			{
+				emit_byte((u8)Op::EQUAL);
+				break;
+			}
+			case TokenType::GREATER:
+			{
+				emit_byte((u8)Op::GREATER);
+				break;
+			}
+			case TokenType::GREATER_EQUAL:
+			{
+				emit_bytes((u8)Op::LESS, (u8)Op::NOT);
+				break;
+			}
+			case TokenType::LESS:
+			{
+				emit_byte((u8)Op::LESS);
+				break;
+			}
+			case TokenType::LESS_EQUAL:
+			{
+				emit_bytes((u8)Op::GREATER, (u8)Op::NOT);
+				break;
+			}
 			default:
 			{
 				assert(false);
 				return;
 			}
 		}
-		// clang-format on
 	}
 
 	void grouping()
 	{
 		expression();
 		consume(TokenType::RIGHT_PAREN, "Expected ')' after expression");
+	}
+
+	void literal()
+	{
+		// Since parse_precedence already consumed the keyword token itself, we just need
+		// to output the instruction
+		switch (parser.previous.type)
+		{
+			case TokenType::FALSE:
+			{
+				emit_byte((u8)Op::FALSE);
+				break;
+			}
+			case TokenType::TRUE:
+			{
+				emit_byte((u8)Op::TRUE);
+				break;
+			}
+			case TokenType::NIL:
+			{
+				emit_byte((u8)Op::NIL);
+				break;
+			}
+			default:
+			{
+				assert(false);
+				return;
+			}
+		}
 	}
 
 	// Will parse all expressions at 'prec' level or higher (higher value, so CALL > UNARY)
@@ -294,31 +372,31 @@ namespace CompilerImpl
 		result[(u8)TokenType::SEMICOLON]     = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::SLASH]         = {nullptr,  binary,   Precedence::FACTOR};
 		result[(u8)TokenType::STAR]          = {nullptr,  binary,   Precedence::FACTOR};
-		result[(u8)TokenType::BANG]          = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::BANG_EQUAL]    = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::BANG]          = {unary,    nullptr,  Precedence::NONE};
+		result[(u8)TokenType::BANG_EQUAL]    = {nullptr,  binary,   Precedence::EQUALITY};
 		result[(u8)TokenType::EQUAL]         = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::EQUAL_EQUAL]   = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::GREATER]       = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::GREATER_EQUAL] = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::LESS]          = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::LESS_EQUAL]    = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::EQUAL_EQUAL]   = {nullptr,  binary,   Precedence::EQUALITY};
+		result[(u8)TokenType::GREATER]       = {nullptr,  binary,   Precedence::COMPARISON};
+		result[(u8)TokenType::GREATER_EQUAL] = {nullptr,  binary,   Precedence::COMPARISON};
+		result[(u8)TokenType::LESS]          = {nullptr,  binary,   Precedence::COMPARISON};
+		result[(u8)TokenType::LESS_EQUAL]    = {nullptr,  binary,   Precedence::COMPARISON};
 		result[(u8)TokenType::IDENTIFIER]    = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::STRING]        = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::NUMBER]        = {number,   nullptr,  Precedence::NONE};
 		result[(u8)TokenType::AND]           = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::CLASS]         = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::ELSE]          = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::FALSE]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::FALSE]         = {literal,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::FOR]           = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::FUN]           = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::IF]            = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::NIL]           = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::NIL]           = {literal,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::OR]            = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::PRINT]         = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::RETURN]        = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::SUPER]         = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::THIS]          = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::TRUE]          = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::TRUE]          = {literal,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::VAR]           = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::WHILE]         = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::ERROR]         = {nullptr,  nullptr,  Precedence::NONE};

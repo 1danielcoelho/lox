@@ -10,10 +10,17 @@ namespace Lox
 	enum class Op : u8
 	{
 		CONSTANT,
+		NIL,
+		TRUE,
+		FALSE,
+		EQUAL,
+		GREATER,
+		LESS,
 		ADD,
 		SUBTRACT,
 		MULTIPLY,
 		DIVIDE,
+		NOT,
 		NEGATE,
 		RETURN
 	};
