@@ -1,5 +1,6 @@
 #include "vm.h"
 #include "compiler.h"
+#include "object.h"
 
 #include <cassert>
 #include <format>
@@ -79,6 +80,16 @@ namespace VMImpl
 		return vm.chunk->constants[read_byte()];
 	}
 
+	void concatenate()
+	{
+		Lox::ObjectString* b = as_string(pop());
+		Lox::ObjectString* a = as_string(pop());
+
+		Lox::ObjectString* concat = new Lox::ObjectString();
+		concat->string = a->string + b->string;
+		push(concat);
+	}
+
 	Lox::InterpretResult run()
 	{
 		while (true)
@@ -132,7 +143,7 @@ namespace VMImpl
 				}
 				case Lox::Op::GREATER:
 				{
-					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
 						return Lox::InterpretResult::RUNTIME_ERROR;
@@ -144,7 +155,7 @@ namespace VMImpl
 				}
 				case Lox::Op::LESS:
 				{
-					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
 						return Lox::InterpretResult::RUNTIME_ERROR;
@@ -156,19 +167,27 @@ namespace VMImpl
 				}
 				case Lox::Op::ADD:
 				{
-					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					if (is_string(peek(0)) && is_string(peek(1)))
+					{
+						concatenate();
+					}
+					else if (is_number(peek(0)) && is_number(peek(1)))
+					{
+						Lox::Value b = pop();
+						Lox::Value a = pop();
+						push(std::get<f64>(a) + std::get<f64>(b));
+					}
+					else
 					{
 						runtime_error("Operands must be numbers");
 						return Lox::InterpretResult::RUNTIME_ERROR;
 					}
-					Lox::Value b = pop();
-					Lox::Value a = pop();
-					push(std::get<f64>(a) + std::get<f64>(b));
+
 					break;
 				}
 				case Lox::Op::SUBTRACT:
 				{
-					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
 						return Lox::InterpretResult::RUNTIME_ERROR;
@@ -180,7 +199,7 @@ namespace VMImpl
 				}
 				case Lox::Op::MULTIPLY:
 				{
-					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
 						return Lox::InterpretResult::RUNTIME_ERROR;
@@ -192,7 +211,7 @@ namespace VMImpl
 				}
 				case Lox::Op::DIVIDE:
 				{
-					if (!std::holds_alternative<f64>(peek(0)) || !std::holds_alternative<f64>(peek(1)))
+					if (!is_number(peek(0)) || !is_number(peek(1)))
 					{
 						runtime_error("Operands must be numbers");
 						return Lox::InterpretResult::RUNTIME_ERROR;
@@ -209,7 +228,7 @@ namespace VMImpl
 				}
 				case Lox::Op::NEGATE:
 				{
-					if (!std::holds_alternative<f64>(peek(0)))
+					if (!is_number(peek(0)))
 					{
 						runtime_error("Operand must be a number");
 						return Lox::InterpretResult::RUNTIME_ERROR;
