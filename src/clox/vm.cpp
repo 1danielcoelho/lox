@@ -4,8 +4,6 @@
 #include <cassert>
 #include <iostream>
 
-#define DEBUG_TRACE_EXECUTION 1
-
 namespace VMImpl
 {
 	// TODO: Not quite sure why I need a class if I could just store internal state here...

@@ -53,7 +53,9 @@ namespace Lox
 		WHILE,
 
 		ERROR,
-		EOF_
+		EOF_,
+
+		NUM
 	};
 
 	struct Token

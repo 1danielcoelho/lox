@@ -2,6 +2,7 @@
 #include "chunk.h"
 #include "scanner.h"
 
+#include <array>
 #include <cassert>
 #include <format>
 #include <iostream>
@@ -20,6 +21,34 @@ namespace CompilerImpl
 	};
 	Parser parser;
 	Chunk* compiling_chunk;
+
+	enum class Precedence : u8
+	{
+		NONE,
+		ASSIGNMENT,	   // =
+		OR,			   // or
+		AND,		   // and
+		EQUALITY,	   // == !=
+		COMPARISON,	   // < > <= >=
+		TERM,		   // + -
+		FACTOR,		   // * /
+		UNARY,		   // ! -
+		CALL,		   // . ()
+		PRIMARY
+	};
+
+	using ParseFn = void (*)();
+
+	struct ParseRule
+	{
+		ParseFn prefix;
+		ParseFn infix;
+		Precedence precedence;
+	};
+
+	const ParseRule* get_rule(TokenType type);
+	void expression();
+	void parse_precedence(Precedence prec);
 
 	void error_at(Token* token, const char* message)
 	{
@@ -126,31 +155,18 @@ namespace CompilerImpl
 	void end_compiler()
 	{
 		emit_return();
-	}
 
-	enum class Precedence : u8
-	{
-		NONE,
-		ASSIGNMENT,	   // =
-		OR,			   // or
-		AND,		   // and
-		EQUALITY,	   // == !=
-		COMPARISON,	   // < > <= >=
-		TERM,		   // + -
-		FACTOR,		   // * /
-		UNARY,		   // ! -
-		CALL,		   // . ()
-		PRIMARY
-	};
-
-	// Will parse all expressions at 'prec' level or higher (higher value, so CALL > UNARY)
-	void parse_precedence(Precedence prec)
-	{
+#if DEBUG_PRINT_CODE
+		if (!parser.had_error)
+		{
+			current_chunk()->disassemble_chunk("code");
+		}
+#endif
 	}
 
 	void number()
 	{
-		double value = strtod(parser.previous.start, NULL);
+		double value = strtod(parser.previous.start, nullptr);
 		emit_constant(value);
 	}
 
@@ -186,17 +202,19 @@ namespace CompilerImpl
 	{
 		TokenType op_type = parser.previous.type;
 
-		// Compile right operand (+1 precedence value because these are left associative)
-		ParserRule* rule = get_rule(op_type);
-		parse_precedence((Precedence)(rule->precedence + 1));
+		// Compile right operand
+		// +1 precedence value because these are left associative, so we don't want to keep on parsing
+		// the same operator. Example: We want (((1 + 2) + 3) + 4), and not (1 + (2 + (3 + 4)))
+		const ParseRule* rule = get_rule(op_type);
+		parse_precedence((Precedence)((u8)rule->precedence + 1));
 
 		// clang-format off
 		switch(op_type)
 		{
-			case TokenType::PLUS: 		emit_byte(Op::ADD); break;
-			case TokenType::MINUS: 		emit_byte(Op::SUBTRACT); break;
-			case TokenType::STAR: 		emit_byte(Op::MULTIPLY); break;
-			case TokenType::SLASH: 		emit_byte(Op::DIVIDE); break;
+			case TokenType::PLUS: 		emit_byte((u8)Op::ADD); break;
+			case TokenType::MINUS: 		emit_byte((u8)Op::SUBTRACT); break;
+			case TokenType::STAR: 		emit_byte((u8)Op::MULTIPLY); break;
+			case TokenType::SLASH: 		emit_byte((u8)Op::DIVIDE); break;
 			default:
 			{
 				assert(false);
@@ -211,6 +229,110 @@ namespace CompilerImpl
 		expression();
 		consume(TokenType::RIGHT_PAREN, "Expected ')' after expression");
 	}
+
+	// Will parse all expressions at 'prec' level or higher (higher value, so CALL > UNARY)
+	void parse_precedence(Precedence prec)
+	{
+		// Consume the first token
+		advance();
+
+		// Parse the first token: That should always be something valid - a number, a 'var', an
+		// identifier, etc.
+		//
+		// prefix_rule may end up consuming more tokens to fill in the "left-hand-side expression",
+		// if we're talking about a binary operator for example.
+		//
+		// prefix_rule may end up recursing back into parse_precedence, and will parse everything
+		// it is allowed to given it's current precedence level, and only later give us back
+		// control, so we can parse the rest of the expression above its precedence, if there is
+		// any
+		ParseFn prefix_rule = get_rule(parser.previous.type)->prefix;
+		if (prefix_rule == nullptr)
+		{
+			error("Expected expression");
+			return;
+		}
+		prefix_rule();
+
+		// While the next token has higher or equal precedence than the level we're allowed
+		// to parse, continue parsing stuff
+		while (get_rule(parser.current.type)->precedence >= prec)
+		{
+			// Consume the next token
+			advance();
+
+			// Parse the next token as an infix operator: This will be a "+", a "/", etc.
+			// Calling infix_rule() here may consume many more tokens, to parse the entire
+			// expression
+			//
+			// After consuming those tokens, we'll do another pass of the while loop and
+			// try consuming the rest of the expression with the same precedence level. If
+			// that doesn't work, we'll return back to our caller
+			//
+			// Note that when we call infix_rule, we're essentially providing "what we parsed so far"
+			// as its left operand. Remember we're already emitting bytecode as we parse these, so
+			// the bytes for the left-hand-side were *already emitted* at that point
+			ParseFn infix_rule = get_rule(parser.previous.type)->infix;
+			infix_rule();
+		}
+	}
+
+	static constexpr std::array<ParseRule, (u8)TokenType::NUM> rules = []()
+	{
+		std::array<ParseRule, (u8)TokenType::NUM> result;
+
+		// clang-format off
+		//                                      prefix   infix    infix precedence
+		result[(u8)TokenType::LEFT_PAREN]    = {grouping, nullptr,  Precedence::NONE};
+		result[(u8)TokenType::RIGHT_PAREN]   = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::LEFT_BRACE]    = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::RIGHT_BRACE]   = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::COMMA]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::DOT]           = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::MINUS]         = {unary,    binary,   Precedence::TERM};
+		result[(u8)TokenType::PLUS]          = {nullptr,  binary,   Precedence::TERM};
+		result[(u8)TokenType::SEMICOLON]     = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::SLASH]         = {nullptr,  binary,   Precedence::FACTOR};
+		result[(u8)TokenType::STAR]          = {nullptr,  binary,   Precedence::FACTOR};
+		result[(u8)TokenType::BANG]          = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::BANG_EQUAL]    = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::EQUAL]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::EQUAL_EQUAL]   = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::GREATER]       = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::GREATER_EQUAL] = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::LESS]          = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::LESS_EQUAL]    = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::IDENTIFIER]    = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::STRING]        = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::NUMBER]        = {number,   nullptr,  Precedence::NONE};
+		result[(u8)TokenType::AND]           = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::CLASS]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::ELSE]          = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::FALSE]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::FOR]           = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::FUN]           = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::IF]            = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::NIL]           = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::OR]            = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::PRINT]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::RETURN]        = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::SUPER]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::THIS]          = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::TRUE]          = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::VAR]           = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::WHILE]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::ERROR]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::EOF_]          = {nullptr,  nullptr,  Precedence::NONE};
+		// clang-format on
+
+		return result;
+	}();
+
+	const ParseRule* get_rule(TokenType type)
+	{
+		return &rules[(u8)type];
+	}
+
 }	 // namespace CompilerImpl
 
 bool Lox::compile(const char* source, Lox::Chunk& chunk)
