@@ -14,17 +14,25 @@ namespace Lox
 	public:
 		virtual ~Object(){};
 		virtual std::string to_string() const;
+
+	protected:
+		Object(){};
 	};
 
 	class ObjectString : public Object
 	{
 	public:
-		std::string string;
+		// Custom allocation function as these are garbage collected/interned
+		static ObjectString* allocate(const std::string& string);
 
 	public:
+		const std::string& get_string() const;
 		virtual std::string to_string() const override;
-	};
 
-	template<typename T>
-	T* allocate_object();
-}
+	private:
+		std::string string;
+
+		ObjectString(const std::string& string);
+		virtual ~ObjectString() override;
+	};
+}	 // namespace Lox

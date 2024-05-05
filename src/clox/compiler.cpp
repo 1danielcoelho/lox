@@ -311,8 +311,9 @@ namespace CompilerImpl
 
 	void string()
 	{
-		Lox::ObjectString* new_str = allocate_object<ObjectString>();
-		new_str->string = std::string{parser.previous.start + 1, (size_t)(parser.previous.length - 2)};
+		Lox::ObjectString* new_str = Lox::ObjectString::allocate(	 //
+			std::string{parser.previous.start + 1, (size_t)(parser.previous.length - 2)}
+		);
 
 		emit_constant(new_str);
 	}

@@ -55,27 +55,15 @@ Lox::ObjectString* Lox::as_string(const Lox::Value& val)
 
 bool Lox::values_equal(const Lox::Value& left_val, const Lox::Value& right_val)
 {
+	// TODO: I *think* we won't need this because since we intern strings we can compare
+	// ObjectString via pointer too and so we could just rely on the operator== automatic
+	// implementation of std::variant... I think we may need this later in the book though
+
 	const bool left_is_obj = is_object(left_val);
 	const bool right_is_obj = is_object(right_val);
 	if (left_is_obj != right_is_obj)
 	{
 		return false;
-	}
-	else if (left_is_obj)
-	{
-		Object* left = as_object(left_val);
-		Object* right = as_object(right_val);
-
-		// Both strings: Do actual string comparison
-		ObjectString* left_str = dynamic_cast<ObjectString*>(left);
-		ObjectString* right_str = dynamic_cast<ObjectString*>(right);
-		if (left_str && right_str)
-		{
-			return left_str->string == right_str->string;
-		}
-
-		// Both some other kind of object: Pointer comparison
-		return left == right;
 	}
 	else
 	{

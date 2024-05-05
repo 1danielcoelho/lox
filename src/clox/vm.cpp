@@ -77,8 +77,7 @@ namespace VMImpl
 		ObjectString* b = as_string(pop());
 		ObjectString* a = as_string(pop());
 
-		ObjectString* concat = allocate_object<ObjectString>();
-		concat->string = a->string + b->string;
+		ObjectString* concat = Lox::ObjectString::allocate(a->get_string() + b->get_string());
 		push(concat);
 	}
 
@@ -261,4 +260,5 @@ Lox::InterpretResult Lox::interpret(const char* source)
 void Lox::free_VM()
 {
 	free_objects();
+	vm.strings.clear();
 }

@@ -3,6 +3,7 @@
 #include "chunk.h"
 
 #include <string>
+#include <unordered_map>
 
 namespace Lox
 {
@@ -24,6 +25,9 @@ namespace Lox
 		std::vector<Lox::Value> stack;
 
 		Lox::Object* objects = nullptr;
+
+		// Where we collect interned strings via the hash of the string itself
+		std::unordered_map<size_t, Lox::ObjectString*> strings;
 	};
 
 	extern VM vm;
