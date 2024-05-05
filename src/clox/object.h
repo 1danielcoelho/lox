@@ -26,13 +26,14 @@ namespace Lox
 		static ObjectString* allocate(const std::string& string);
 
 	public:
-		const std::string& get_string() const;
+		virtual ~ObjectString() override;
 		virtual std::string to_string() const override;
+
+		const std::string& get_string() const;
 
 	private:
 		std::string string;
 
 		ObjectString(const std::string& string);
-		virtual ~ObjectString() override;
 	};
 }	 // namespace Lox
