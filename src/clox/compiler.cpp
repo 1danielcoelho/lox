@@ -189,7 +189,7 @@ namespace CompilerImpl
 #endif
 	}
 
-	void number(bool can_assign)
+	void number([[maybe_unused]] bool can_assign)
 	{
 		double value = strtod(parser.previous.start, nullptr);
 		emit_constant(value);
@@ -200,7 +200,7 @@ namespace CompilerImpl
 		parse_precedence(Precedence::ASSIGNMENT);
 	}
 
-	void unary(bool can_assign)
+	void unary([[maybe_unused]] bool can_assign)
 	{
 		TokenType op_type = parser.previous.type;
 
@@ -228,7 +228,7 @@ namespace CompilerImpl
 		}
 	}
 
-	void binary(bool can_assign)
+	void binary([[maybe_unused]] bool can_assign)
 	{
 		TokenType op_type = parser.previous.type;
 
@@ -298,13 +298,13 @@ namespace CompilerImpl
 		}
 	}
 
-	void grouping(bool can_assign)
+	void grouping([[maybe_unused]] bool can_assign)
 	{
 		expression();
 		consume(TokenType::RIGHT_PAREN, "Expected ')' after expression");
 	}
 
-	void literal(bool can_assign)
+	void literal([[maybe_unused]] bool can_assign)
 	{
 		// Since parse_precedence already consumed the keyword token itself, we just need
 		// to output the instruction
@@ -333,7 +333,7 @@ namespace CompilerImpl
 		}
 	}
 
-	void string(bool can_assign)
+	void string([[maybe_unused]] bool can_assign)
 	{
 		Lox::ObjectString* new_str = Lox::ObjectString::allocate(	 //
 			std::string{parser.previous.start + 1, (size_t)(parser.previous.length - 2)}
@@ -358,8 +358,6 @@ namespace CompilerImpl
 		{
 			emit_bytes((u8)Op::GET_GLOBAL, index);
 		}
-
-		emit_bytes((u8)Op::GET_GLOBAL, index);
 	}
 
 	void variable(bool can_assign)
