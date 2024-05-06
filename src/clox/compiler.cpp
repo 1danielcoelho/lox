@@ -38,7 +38,7 @@ namespace CompilerImpl
 		PRIMARY
 	};
 
-	using ParseFn = void (*)();
+	using ParseFn = void (*)(bool can_assign);
 
 	struct ParseRule
 	{
@@ -104,6 +104,22 @@ namespace CompilerImpl
 
 			error_at_current(parser.current.start);
 		}
+	}
+
+	bool check(TokenType type)
+	{
+		return parser.current.type == type;
+	}
+
+	bool match(TokenType type)
+	{
+		if (!check(type))
+		{
+			return false;
+		}
+
+		advance();
+		return true;
 	}
 
 	void consume(TokenType type, const char* message)
@@ -173,7 +189,7 @@ namespace CompilerImpl
 #endif
 	}
 
-	void number()
+	void number(bool can_assign)
 	{
 		double value = strtod(parser.previous.start, nullptr);
 		emit_constant(value);
@@ -184,7 +200,7 @@ namespace CompilerImpl
 		parse_precedence(Precedence::ASSIGNMENT);
 	}
 
-	void unary()
+	void unary(bool can_assign)
 	{
 		TokenType op_type = parser.previous.type;
 
@@ -212,7 +228,7 @@ namespace CompilerImpl
 		}
 	}
 
-	void binary()
+	void binary(bool can_assign)
 	{
 		TokenType op_type = parser.previous.type;
 
@@ -282,13 +298,13 @@ namespace CompilerImpl
 		}
 	}
 
-	void grouping()
+	void grouping(bool can_assign)
 	{
 		expression();
 		consume(TokenType::RIGHT_PAREN, "Expected ')' after expression");
 	}
 
-	void literal()
+	void literal(bool can_assign)
 	{
 		// Since parse_precedence already consumed the keyword token itself, we just need
 		// to output the instruction
@@ -317,7 +333,7 @@ namespace CompilerImpl
 		}
 	}
 
-	void string()
+	void string(bool can_assign)
 	{
 		Lox::ObjectString* new_str = Lox::ObjectString::allocate(	 //
 			std::string{parser.previous.start + 1, (size_t)(parser.previous.length - 2)}
@@ -326,15 +342,29 @@ namespace CompilerImpl
 		emit_constant(new_str);
 	}
 
-	void named_variable(const Token& name)
+	void named_variable(const Token& name, bool can_assign)
 	{
 		u8 index = identifier_constant(name);
+
+		// We may be parsing something like `menu.brunch(sunday).beverage = "mimosa";`, where
+		// the left-hand side of the equal signs could have been parsed as a get expression, up to
+		// the point where we run into the '=' and realize it's a setter instead
+		if (can_assign && match(TokenType::EQUAL))
+		{
+			expression();
+			emit_bytes((u8)Op::SET_GLOBAL, index);
+		}
+		else
+		{
+			emit_bytes((u8)Op::GET_GLOBAL, index);
+		}
+
 		emit_bytes((u8)Op::GET_GLOBAL, index);
 	}
 
-	void variable()
+	void variable(bool can_assign)
 	{
-		named_variable(parser.previous);
+		named_variable(parser.previous, can_assign);
 	}
 
 	// Will parse all expressions at 'prec' level or higher (higher value, so CALL > UNARY)
@@ -359,7 +389,9 @@ namespace CompilerImpl
 			error("Expected expression");
 			return;
 		}
-		prefix_rule();
+
+		bool can_assign = prec <= Precedence::ASSIGNMENT;
+		prefix_rule(can_assign);
 
 		// While the next token has higher or equal precedence than the level we're allowed
 		// to parse, continue parsing stuff
@@ -380,7 +412,12 @@ namespace CompilerImpl
 			// as its left operand. Remember we're already emitting bytecode as we parse these, so
 			// the bytes for the left-hand-side were *already emitted* at that point
 			ParseFn infix_rule = get_rule(parser.previous.type)->infix;
-			infix_rule();
+			infix_rule(can_assign);
+		}
+
+		if (can_assign && match(TokenType::EQUAL))
+		{
+			error("Invalid assignment target");
 		}
 	}
 
@@ -475,22 +512,6 @@ namespace CompilerImpl
 
 			advance();
 		}
-	}
-
-	bool check(TokenType type)
-	{
-		return parser.current.type == type;
-	}
-
-	bool match(TokenType type)
-	{
-		if (!check(type))
-		{
-			return false;
-		}
-
-		advance();
-		return true;
 	}
 
 	void print_statement()

@@ -154,6 +154,31 @@ namespace VMImpl
 					pop();
 					break;
 				}
+				case Op::SET_GLOBAL:
+				{
+					// Variable name is stored as a constant
+					Value constant = read_constant();
+					Lox::ObjectString* obj_string = as_string(constant);
+					const std::string& variable_name = obj_string->get_string();
+
+					// Check to see if we have a variable declared for that name yet
+					auto iter = vm.globals.find(variable_name);
+					if (iter != vm.globals.end())
+					{
+						vm.globals[variable_name] = peek(0);
+					}
+					else
+					{
+						std::string error_message = std::format("Undefined variable '{}'", variable_name);
+						runtime_error(error_message.c_str());
+						return Lox::InterpretResult::RUNTIME_ERROR;
+					}
+
+					// Note: This doesn't pop the value off the stack, as assignment is an expression, so it
+					// needs to leave that value there in case the assignment is nested inside some larger
+					// expression
+					break;
+				}
 				case Op::EQUAL:
 				{
 					Value b = pop();

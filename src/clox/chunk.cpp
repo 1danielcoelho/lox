@@ -60,6 +60,11 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			return print_constant_instruction("DEFINE_GLOBAL", offset);
 			break;
 		}
+		case Lox::Op::SET_GLOBAL:
+		{
+			return print_constant_instruction("SET_GLOBAL", offset);
+			break;
+		}
 		case Lox::Op::EQUAL:
 		{
 			return print_simple_instruction("EQUAL", offset);
