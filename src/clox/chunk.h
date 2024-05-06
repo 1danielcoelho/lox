@@ -13,6 +13,9 @@ namespace Lox
 		NIL,
 		TRUE,
 		FALSE,
+		POP,
+		GET_GLOBAL,
+		DEFINE_GLOBAL,
 		EQUAL,
 		GREATER,
 		LESS,
@@ -22,6 +25,7 @@ namespace Lox
 		DIVIDE,
 		NOT,
 		NEGATE,
+		PRINT,
 		RETURN
 	};
 

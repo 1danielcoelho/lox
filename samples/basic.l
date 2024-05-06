@@ -1,1 +1,3 @@
-"st" + "ri" + "ng" + "stri" + "ri"
+var beverage = "cafe au lait";
+var breakfast = "beignets with " + beverage;
+print breakfast;

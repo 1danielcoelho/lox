@@ -26,8 +26,11 @@ namespace Lox
 
 		Lox::Object* objects = nullptr;
 
-		// Where we collect interned strings via the hash of the string itself
-		std::unordered_map<size_t, Lox::ObjectString*> strings;
+		// Where we collect interned strings
+		std::unordered_map<std::string, Lox::ObjectString*> strings;
+
+		// Global variables stored by hash of the name string
+		std::unordered_map<std::string, Lox::Value> globals;
 	};
 
 	extern VM vm;

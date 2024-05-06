@@ -25,11 +25,6 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 	std::cout << std::setw(4) << line_number_str << " ";
 	switch (instruction)
 	{
-		case Lox::Op::RETURN:
-		{
-			return print_simple_instruction("RETURN", offset);
-			break;
-		}
 		case Lox::Op::CONSTANT:
 		{
 			return print_constant_instruction("CONSTANT", offset);
@@ -48,6 +43,21 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 		case Lox::Op::FALSE:
 		{
 			return print_simple_instruction("FALSE", offset);
+			break;
+		}
+		case Lox::Op::POP:
+		{
+			return print_simple_instruction("POP", offset);
+			break;
+		}
+		case Lox::Op::GET_GLOBAL:
+		{
+			return print_constant_instruction("GET_GLOBAL", offset);
+			break;
+		}
+		case Lox::Op::DEFINE_GLOBAL:
+		{
+			return print_constant_instruction("DEFINE_GLOBAL", offset);
 			break;
 		}
 		case Lox::Op::EQUAL:
@@ -93,6 +103,16 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 		case Lox::Op::NEGATE:
 		{
 			return print_simple_instruction("NEGATE", offset);
+			break;
+		}
+		case Lox::Op::PRINT:
+		{
+			return print_simple_instruction("PRINT", offset);
+			break;
+		}
+		case Lox::Op::RETURN:
+		{
+			return print_simple_instruction("RETURN", offset);
 			break;
 		}
 		default:

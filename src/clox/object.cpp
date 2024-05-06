@@ -8,10 +8,7 @@ std::string Lox::Object::to_string() const
 
 Lox::ObjectString* Lox::ObjectString::allocate(const std::string& string)
 {
-	// TODO: This is not great because now the language really just can't store
-	// different strings that happen to hash collide... It's probably fine for now though
-	size_t hash = std::hash<std::string>()(string);
-	auto iter = vm.strings.find(hash);
+	auto iter = vm.strings.find(string);
 	if (iter != vm.strings.end())
 	{
 		return iter->second;
@@ -22,15 +19,14 @@ Lox::ObjectString* Lox::ObjectString::allocate(const std::string& string)
 	result->next = vm.objects;
 	vm.objects = result;
 
-	vm.strings.insert({hash, result});
+	vm.strings.insert({string, result});
 
 	return result;
 }
 
 Lox::ObjectString::~ObjectString()
 {
-	size_t hash = std::hash<std::string>()(string);
-	vm.strings.erase(hash);
+	vm.strings.erase(string);
 }
 
 std::string Lox::ObjectString::to_string() const

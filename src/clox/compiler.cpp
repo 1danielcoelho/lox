@@ -49,6 +49,8 @@ namespace CompilerImpl
 
 	const ParseRule* get_rule(TokenType type);
 	void expression();
+	void statement();
+	void declaration();
 	void parse_precedence(Precedence prec);
 
 	void error_at(Token* token, const char* message)
@@ -130,6 +132,12 @@ namespace CompilerImpl
 		}
 
 		return (u8)index;
+	}
+
+	u8 identifier_constant(const Token& name)
+	{
+		Lox::ObjectString* new_str = Lox::ObjectString::allocate(std::string{name.start, (size_t)name.length});
+		return make_constant(new_str);
 	}
 
 	void emit_byte(u8 byte)
@@ -318,6 +326,17 @@ namespace CompilerImpl
 		emit_constant(new_str);
 	}
 
+	void named_variable(const Token& name)
+	{
+		u8 index = identifier_constant(name);
+		emit_bytes((u8)Op::GET_GLOBAL, index);
+	}
+
+	void variable()
+	{
+		named_variable(parser.previous);
+	}
+
 	// Will parse all expressions at 'prec' level or higher (higher value, so CALL > UNARY)
 	void parse_precedence(Precedence prec)
 	{
@@ -390,7 +409,7 @@ namespace CompilerImpl
 		result[(u8)TokenType::GREATER_EQUAL] = {nullptr,  binary,   Precedence::COMPARISON};
 		result[(u8)TokenType::LESS]          = {nullptr,  binary,   Precedence::COMPARISON};
 		result[(u8)TokenType::LESS_EQUAL]    = {nullptr,  binary,   Precedence::COMPARISON};
-		result[(u8)TokenType::IDENTIFIER]    = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::IDENTIFIER]    = {variable, nullptr,  Precedence::NONE};
 		result[(u8)TokenType::STRING]        = {string,   nullptr,  Precedence::NONE};
 		result[(u8)TokenType::NUMBER]        = {number,   nullptr,  Precedence::NONE};
 		result[(u8)TokenType::AND]           = {nullptr,  nullptr,  Precedence::NONE};
@@ -421,6 +440,131 @@ namespace CompilerImpl
 		return &rules[(u8)type];
 	}
 
+	void synchronize()
+	{
+		parser.panic_mode = false;
+
+		while (parser.current.type != TokenType::EOF_)
+		{
+			// Detects the end of an expression statement
+			if (parser.previous.type == TokenType::SEMICOLON)
+			{
+				return;
+			}
+
+			// Detects the end of the other statement types (or rather,
+			// the start of the next statement)
+			switch (parser.current.type)
+			{
+				case TokenType::CLASS:
+				case TokenType::FUN:
+				case TokenType::VAR:
+				case TokenType::FOR:
+				case TokenType::IF:
+				case TokenType::WHILE:
+				case TokenType::PRINT:
+				case TokenType::RETURN:
+				{
+					return;
+				}
+				default:
+				{
+					// Do nothing
+				}
+			}
+
+			advance();
+		}
+	}
+
+	bool check(TokenType type)
+	{
+		return parser.current.type == type;
+	}
+
+	bool match(TokenType type)
+	{
+		if (!check(type))
+		{
+			return false;
+		}
+
+		advance();
+		return true;
+	}
+
+	void print_statement()
+	{
+		expression();
+		consume(TokenType::SEMICOLON, "Expected ';' after value");
+		emit_byte((u8)Op::PRINT);
+	}
+
+	void expression_statement()
+	{
+		expression();
+		consume(TokenType::SEMICOLON, "Expected ';' after value");
+		emit_byte((u8)Op::POP);
+	}
+
+	void statement()
+	{
+		if (match(TokenType::PRINT))
+		{
+			print_statement();
+		}
+		else
+		{
+			expression_statement();
+		}
+	}
+
+	u8 parse_variable(const char* error_message)
+	{
+		consume(TokenType::IDENTIFIER, error_message);
+		return identifier_constant(parser.previous);
+	}
+
+	void define_variable(u8 global_index)
+	{
+		emit_bytes((u8)Op::DEFINE_GLOBAL, global_index);
+	}
+
+	void var_declaration()
+	{
+		u8 global_index = parse_variable("Expected variable name");
+
+		if (match(TokenType::EQUAL))
+		{
+			expression();
+		}
+		else
+		{
+			emit_byte((u8)Op::NIL);
+		}
+
+		consume(TokenType::SEMICOLON, "Expected ';' after variable declaration");
+
+		define_variable(global_index);
+	}
+
+	void declaration()
+	{
+		if (match(TokenType::VAR))
+		{
+			var_declaration();
+		}
+		else
+		{
+			statement();
+		}
+
+		if (parser.panic_mode)
+		{
+			synchronize();
+		}
+	}
+
 }	 // namespace CompilerImpl
 
 bool Lox::compile(const char* source, Lox::Chunk& chunk)
@@ -433,8 +577,12 @@ bool Lox::compile(const char* source, Lox::Chunk& chunk)
 	parser.panic_mode = false;
 
 	advance();
-	expression();
-	consume(TokenType::EOF_, "Expected the end of an expression");
+
+	while (!match(TokenType::EOF_))
+	{
+		declaration();
+	}
+
 	end_compiler();
 	return !parser.had_error;
 }

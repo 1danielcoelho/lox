@@ -98,12 +98,6 @@ namespace VMImpl
 			Op instruction = static_cast<Op>(read_byte());
 			switch (instruction)
 			{
-				case Op::RETURN:
-				{
-					std::cout << to_string(pop()) << std::endl;
-					return InterpretResult::OK;
-					break;
-				}
 				case Op::CONSTANT:
 				{
 					Value constant = read_constant();
@@ -123,6 +117,41 @@ namespace VMImpl
 				case Op::FALSE:
 				{
 					push(false);
+					break;
+				}
+				case Op::POP:
+				{
+					pop();
+					break;
+				}
+				case Op::GET_GLOBAL:
+				{
+					// Variable name is stored as a constant
+					Value constant = read_constant();
+					Lox::ObjectString* obj_string = as_string(constant);
+					const std::string& variable_name = obj_string->get_string();
+
+					// Check to see if we have a value for that variable
+					auto iter = vm.globals.find(variable_name);
+					if (iter == vm.globals.end())
+					{
+						std::string error_message = std::format("Undefined variable '{}'", variable_name);
+						runtime_error(error_message.c_str());
+						return Lox::InterpretResult::RUNTIME_ERROR;
+					}
+
+					// Push that value into the stack
+					push(iter->second);
+					break;
+				}
+				case Op::DEFINE_GLOBAL:
+				{
+					// Variable name is stored as a constant
+					Value constant = read_constant();
+					Lox::ObjectString* obj_string = as_string(constant);
+
+					vm.globals[obj_string->get_string()] = peek(0);	   // Initializer value
+					pop();
 					break;
 				}
 				case Op::EQUAL:
@@ -228,6 +257,16 @@ namespace VMImpl
 					push(-std::get<f64>(pop()));
 					break;
 				}
+				case Op::PRINT:
+				{
+					std::cout << to_string(pop()) << std::endl;
+					break;
+				}
+				case Op::RETURN:
+				{
+					return InterpretResult::OK;
+					break;
+				}
 				default:
 				{
 					assert(false);
@@ -261,4 +300,5 @@ void Lox::free_VM()
 {
 	free_objects();
 	vm.strings.clear();
+	vm.globals.clear();
 }
