@@ -14,6 +14,8 @@ namespace Lox
 		TRUE,
 		FALSE,
 		POP,
+		GET_LOCAL,
+		SET_LOCAL,
 		GET_GLOBAL,
 		DEFINE_GLOBAL,
 		SET_GLOBAL,
@@ -47,5 +49,6 @@ namespace Lox
 	private:
 		i32 print_simple_instruction(const char* op_name, i32 offset) const;
 		i32 print_constant_instruction(const char* op_name, i32 offset) const;
+		i32 print_byte_instruction(const char* op_name, i32 offset) const;
 	};
 }	 // namespace Lox

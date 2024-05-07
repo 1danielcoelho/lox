@@ -9,6 +9,8 @@
 #include <iostream>
 #include <string>
 
+#define UNINITIALIZED -1
+
 namespace CompilerImpl
 {
 	using namespace Lox;
@@ -20,8 +22,6 @@ namespace CompilerImpl
 		bool had_error = false;
 		bool panic_mode = false;
 	};
-	Parser parser;
-	Chunk* compiling_chunk;
 
 	enum class Precedence : u8
 	{
@@ -47,11 +47,35 @@ namespace CompilerImpl
 		Precedence precedence;
 	};
 
+	struct Local
+	{
+		Token name;
+		i32 depth = UNINITIALIZED;
+	};
+
+	struct Compiler
+	{
+		std::array<Local, UINT8_MAX + 1> locals;
+		i32 local_count = 0;
+		i32 scope_depth = 0;
+	};
+
+	Parser parser;
+	Chunk* compiling_chunk;
+	Compiler* current = nullptr;
+
 	const ParseRule* get_rule(TokenType type);
 	void expression();
 	void statement();
 	void declaration();
 	void parse_precedence(Precedence prec);
+
+	void init_compiler(Compiler* compiler)
+	{
+		compiler->local_count = 0;
+		compiler->scope_depth = 0;
+		current = compiler;
+	}
 
 	void error_at(Token* token, const char* message)
 	{
@@ -154,6 +178,40 @@ namespace CompilerImpl
 	{
 		Lox::ObjectString* new_str = Lox::ObjectString::allocate(std::string{name.start, (size_t)name.length});
 		return make_constant(new_str);
+	}
+
+	bool identifiers_equal(const Token& a, const Token& b)
+	{
+		if (a.length != b.length)
+		{
+			return false;
+		}
+
+		return std::memcmp(a.start, b.start, a.length) == 0;
+	}
+
+	i32 resolve_local(Compiler* compiler, const Token& name)
+	{
+		// Note: Locals and the location of the local values within the actual stack
+		// match exactly, as temporary values never persist between locals (i.e. the
+		// locals are all packed on the lowest significant positions of the stack).
+		// This because temporaries either "become a local" or they are popped at the
+		// end of an expression statement
+		for (i32 i = compiler->local_count - 1; i >= 0; i--)
+		{
+			Local* local = &compiler->locals[i];
+			if (identifiers_equal(name, local->name))
+			{
+				if (local->depth == UNINITIALIZED)
+				{
+					error("Can't read local variable in its own initializer");
+				}
+
+				return i;
+			}
+		}
+
+		return -1;
 	}
 
 	void emit_byte(u8 byte)
@@ -344,7 +402,20 @@ namespace CompilerImpl
 
 	void named_variable(const Token& name, bool can_assign)
 	{
-		u8 index = identifier_constant(name);
+		Op get_op;
+		Op set_op;
+		i32 op_arg = resolve_local(current, name);
+		if (op_arg != -1)
+		{
+			get_op = Op::GET_LOCAL;
+			set_op = Op::SET_LOCAL;
+		}
+		else
+		{
+			op_arg = identifier_constant(name);
+			get_op = Op::GET_GLOBAL;
+			set_op = Op::SET_GLOBAL;
+		}
 
 		// We may be parsing something like `menu.brunch(sunday).beverage = "mimosa";`, where
 		// the left-hand side of the equal signs could have been parsed as a get expression, up to
@@ -352,11 +423,11 @@ namespace CompilerImpl
 		if (can_assign && match(TokenType::EQUAL))
 		{
 			expression();
-			emit_bytes((u8)Op::SET_GLOBAL, index);
+			emit_bytes((u8)set_op, (u8)op_arg);
 		}
 		else
 		{
-			emit_bytes((u8)Op::GET_GLOBAL, index);
+			emit_bytes((u8)get_op, (u8)op_arg);
 		}
 	}
 
@@ -526,11 +597,43 @@ namespace CompilerImpl
 		emit_byte((u8)Op::POP);
 	}
 
+	void block()
+	{
+		while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::EOF_))
+		{
+			declaration();
+		}
+
+		consume(TokenType::RIGHT_BRACE, "Expected '}' after block");
+	}
+
+	void begin_scope()
+	{
+		current->scope_depth++;
+	}
+
+	void end_scope()
+	{
+		current->scope_depth--;
+
+		while (current->local_count > 0 && current->locals[current->local_count - 1].depth > current->scope_depth)
+		{
+			emit_byte((u8)Op::POP);
+			current->local_count--;
+		}
+	}
+
 	void statement()
 	{
 		if (match(TokenType::PRINT))
 		{
 			print_statement();
+		}
+		else if (match(TokenType::LEFT_BRACE))
+		{
+			begin_scope();
+			block();
+			end_scope();
 		}
 		else
 		{
@@ -538,15 +641,76 @@ namespace CompilerImpl
 		}
 	}
 
-	u8 parse_variable(const char* error_message)
+	void add_local(const Token& var_name)
 	{
-		consume(TokenType::IDENTIFIER, error_message);
-		return identifier_constant(parser.previous);
+		if (current->local_count == UINT8_MAX + 1)
+		{
+			error("Too many local variables");
+			return;
+		}
+
+		Local* local = &current->locals[current->local_count++];
+		local->name = var_name;
+		local->depth = current->scope_depth;
+	}
+
+	void mark_initialized()
+	{
+		current->locals[current->local_count - 1].depth = current->scope_depth;
+	}
+
+	void declare_variable()
+	{
+		if (current->scope_depth == 0)
+		{
+			return;
+		}
+
+		const Token& var_name = parser.previous;
+		for (i32 i = current->local_count - 1; i >= 0; i--)
+		{
+			Local* local = &current->locals[i];
+
+			if (local->depth != -1 && local->depth < current->scope_depth)
+			{
+				break;
+			}
+
+			if (identifiers_equal(var_name, local->name))
+			{
+				error("A variable with this name already exists in this scope");
+			}
+		}
+
+		add_local(var_name);
 	}
 
 	void define_variable(u8 global_index)
 	{
+		// Don't need to do anything at runtime: The temporary for the variable's value
+		// is already in the stack anyway
+		if (current->scope_depth > 0)
+		{
+			mark_initialized();
+			return;
+		}
+
 		emit_bytes((u8)Op::DEFINE_GLOBAL, global_index);
+	}
+
+	u8 parse_variable(const char* error_message)
+	{
+		consume(TokenType::IDENTIFIER, error_message);
+
+		declare_variable();
+		if (current->scope_depth > 0)
+		{
+			// "At runtime, locals aren’t looked up by name. There’s no need to stuff the variable’s name into
+			// the constant table, so if the declaration is inside a local scope, we return a dummy table index instead."
+			return 0;
+		}
+
+		return identifier_constant(parser.previous);
 	}
 
 	void var_declaration()
@@ -591,6 +755,10 @@ bool Lox::compile(const char* source, Lox::Chunk& chunk)
 	using namespace CompilerImpl;
 
 	init_scanner(source);
+
+	Compiler compiler;
+	init_compiler(&compiler);
+
 	compiling_chunk = &chunk;
 	parser.had_error = false;
 	parser.panic_mode = false;

@@ -1,6 +1,7 @@
 #include "chunk.h"
 
 #include <cassert>
+#include <format>
 #include <iomanip>
 #include <iostream>
 #include <string>
@@ -48,6 +49,16 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 		case Lox::Op::POP:
 		{
 			return print_simple_instruction("POP", offset);
+			break;
+		}
+		case Lox::Op::GET_LOCAL:
+		{
+			return print_byte_instruction("GET_LOCAL", offset);
+			break;
+		}
+		case Lox::Op::SET_LOCAL:
+		{
+			return print_byte_instruction("SET_LOCAL", offset);
 			break;
 		}
 		case Lox::Op::GET_GLOBAL:
@@ -152,5 +163,12 @@ i32 Lox::Chunk::print_constant_instruction(const char* op_name, i32 offset) cons
 	std::cout << op_name << " ";
 	std::cout << std::to_string(constant_index) << " '";
 	std::cout << to_string(constants[constant_index]) << "'" << std::endl;
+	return offset + 2;
+}
+
+i32 Lox::Chunk::print_byte_instruction(const char* op_name, i32 offset) const
+{
+	u8 slot = code[offset + 1];
+	std::cout << std::format("{} {}", op_name, slot) << std::endl;
 	return offset + 2;
 }

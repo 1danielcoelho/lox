@@ -124,6 +124,22 @@ namespace VMImpl
 					pop();
 					break;
 				}
+				case Op::GET_LOCAL:
+				{
+					// Yes this pushes a copy of the value back onto the stack. The idea being that
+					// other bytecode instructions will look for data only at the top of the stack
+					u8 slot = read_byte();
+					push(vm.stack[slot]);
+					break;
+				}
+				case Op::SET_LOCAL:
+				{
+					// Note that it doesn't pop, as assignment is an expression and every expression produces
+					// a value (here the assigned value itself). Tthe value is left at the top of the stack
+					u8 slot = read_byte();
+					vm.stack[slot] = peek(0);
+					break;
+				}
 				case Op::GET_GLOBAL:
 				{
 					// Variable name is stored as a constant
