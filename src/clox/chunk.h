@@ -29,6 +29,7 @@ namespace Lox
 		NOT,
 		NEGATE,
 		PRINT,
+		JUMP_IF_FALSE,
 		RETURN
 	};
 

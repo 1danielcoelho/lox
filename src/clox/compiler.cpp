@@ -225,6 +225,14 @@ namespace CompilerImpl
 		emit_byte(b2);
 	}
 
+	i32 emit_jump(Op instruction)
+	{
+		emit_byte((u8)instruction);
+		emit_byte(0xFF);
+		emit_byte(0xFF);
+		return static_cast<i32>(current_chunk()->code.size() - 2);
+	}
+
 	void emit_return()
 	{
 		emit_byte((u8)Op::RETURN);
@@ -233,6 +241,20 @@ namespace CompilerImpl
 	void emit_constant(Value value)
 	{
 		emit_bytes((u8)Op::CONSTANT, make_constant(value));
+	}
+
+	void patch_jump(i32 offset)
+	{
+		// -2 to adjust for the bytecode for the jump offset itself
+		i32 distance = current_chunk()->code.size() - offset - 2;
+
+		if (distance > UINT16_MAX)
+		{
+			error("Too much code to jump over");
+		}
+
+		current_chunk()->code[offset + 0] = (distance >> 8) & 0xFF;
+		current_chunk()->code[offset + 1] = (distance >> 0) & 0xFF;
 	}
 
 	void end_compiler()
@@ -597,6 +619,18 @@ namespace CompilerImpl
 		emit_byte((u8)Op::POP);
 	}
 
+	void if_statement()
+	{
+		consume(TokenType::LEFT_PAREN, "Expected '(' after 'if'");
+		expression();
+		consume(TokenType::RIGHT_PAREN, "Expected ')' after condition");
+
+		i32 then_jump = emit_jump(Op::JUMP_IF_FALSE);
+		statement();
+
+		patch_jump(then_jump);
+	}
+
 	void block()
 	{
 		while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::EOF_))
@@ -628,6 +662,10 @@ namespace CompilerImpl
 		if (match(TokenType::PRINT))
 		{
 			print_statement();
+		}
+		else if (match(TokenType::IF))
+		{
+			if_statement();
 		}
 		else if (match(TokenType::LEFT_BRACE))
 		{

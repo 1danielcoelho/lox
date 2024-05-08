@@ -67,6 +67,12 @@ namespace VMImpl
 		return *vm.ip++;
 	}
 
+	u16 read_short()
+	{
+		vm.ip += 2;
+		return (u16)((vm.ip[-2] << 8) | vm.ip[-1]);
+	}
+
 	Value read_constant()
 	{
 		return vm.chunk->constants[read_byte()];
@@ -301,6 +307,15 @@ namespace VMImpl
 				case Op::PRINT:
 				{
 					std::cout << to_string(pop()) << std::endl;
+					break;
+				}
+				case Op::JUMP_IF_FALSE:
+				{
+					u16 offset = read_short();
+					if (is_falsey(peek(0)))
+					{
+						vm.ip += offset;
+					}
 					break;
 				}
 				case Op::RETURN:
