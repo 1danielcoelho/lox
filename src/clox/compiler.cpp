@@ -68,6 +68,8 @@ namespace CompilerImpl
 	void expression();
 	void statement();
 	void declaration();
+	void and_(bool can_assign);
+	void or_(bool can_assign);
 	void parse_precedence(Precedence prec);
 
 	void init_compiler(Compiler* compiler)
@@ -540,7 +542,7 @@ namespace CompilerImpl
 		result[(u8)TokenType::IDENTIFIER]    = {variable, nullptr,  Precedence::NONE};
 		result[(u8)TokenType::STRING]        = {string,   nullptr,  Precedence::NONE};
 		result[(u8)TokenType::NUMBER]        = {number,   nullptr,  Precedence::NONE};
-		result[(u8)TokenType::AND]           = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::AND]           = {nullptr,  and_,  	Precedence::AND};
 		result[(u8)TokenType::CLASS]         = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::ELSE]          = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::FALSE]         = {literal,  nullptr,  Precedence::NONE};
@@ -548,7 +550,7 @@ namespace CompilerImpl
 		result[(u8)TokenType::FUN]           = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::IF]            = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::NIL]           = {literal,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::OR]            = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::OR]            = {nullptr,  or_,  	Precedence::OR};
 		result[(u8)TokenType::PRINT]         = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::RETURN]        = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::SUPER]         = {nullptr,  nullptr,  Precedence::NONE};
@@ -742,6 +744,28 @@ namespace CompilerImpl
 		}
 
 		emit_bytes((u8)Op::DEFINE_GLOBAL, global_index);
+	}
+
+	void and_([[maybe_unused]] bool can_assign)
+	{
+		i32 end_jump = emit_jump(Op::JUMP_IF_FALSE);
+
+		emit_byte((u8)Op::POP);
+		parse_precedence(Precedence::AND);
+
+		patch_jump(end_jump);
+	}
+
+	void or_([[maybe_unused]] bool can_assign)
+	{
+		i32 else_jump = emit_jump(Op::JUMP_IF_FALSE);
+		i32 end_jump = emit_jump(Op::JUMP);
+
+		patch_jump(else_jump);
+		emit_byte((u8)Op::POP);
+
+		parse_precedence(Precedence::OR);
+		patch_jump(end_jump);
 	}
 
 	u8 parse_variable(const char* error_message)
