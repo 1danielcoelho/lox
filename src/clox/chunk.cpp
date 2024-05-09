@@ -14,6 +14,8 @@ void Lox::Chunk::disassemble_chunk(const char* chunk_name) const
 	{
 		offset = disassemble_instruction(offset);
 	}
+
+	std::cout << "==========" << std::endl;
 }
 
 i32 Lox::Chunk::disassemble_instruction(i32 offset) const
@@ -126,6 +128,16 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			return print_simple_instruction("PRINT", offset);
 			break;
 		}
+		case Lox::Op::JUMP:
+		{
+			return print_jump_instruction("JUMP", 1, offset);
+			break;
+		}
+		case Lox::Op::JUMP_IF_FALSE:
+		{
+			return print_jump_instruction("JUMP_IF_FALSE", 1, offset);
+			break;
+		}
 		case Lox::Op::RETURN:
 		{
 			return print_simple_instruction("RETURN", offset);
@@ -171,4 +183,13 @@ i32 Lox::Chunk::print_byte_instruction(const char* op_name, i32 offset) const
 	u8 slot = code[offset + 1];
 	std::cout << std::format("{} {}", op_name, slot) << std::endl;
 	return offset + 2;
+}
+
+i32 Lox::Chunk::print_jump_instruction(const char* op_name, i32 sign, i32 offset) const
+{
+	u16 jump = (u16)(code[offset + 1] << 8);
+	jump |= code[offset + 2];
+
+	std::cout << std::format("{} {} -> {}", op_name, offset, offset + 3 + sign * jump) << std::endl;
+	return offset + 3;
 }

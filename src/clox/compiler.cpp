@@ -246,7 +246,7 @@ namespace CompilerImpl
 	void patch_jump(i32 offset)
 	{
 		// -2 to adjust for the bytecode for the jump offset itself
-		i32 distance = current_chunk()->code.size() - offset - 2;
+		i32 distance = (i32)(current_chunk()->code.size() - offset - 2);
 
 		if (distance > UINT16_MAX)
 		{
@@ -626,9 +626,17 @@ namespace CompilerImpl
 		consume(TokenType::RIGHT_PAREN, "Expected ')' after condition");
 
 		i32 then_jump = emit_jump(Op::JUMP_IF_FALSE);
+		emit_byte((u8)Op::POP);	   // Pop the result of the condition expression off the stack as a statement must have zero stack effect
 		statement();
+		i32 else_jump = emit_jump(Op::JUMP);
 
-		patch_jump(then_jump);
+		patch_jump(then_jump);	   // Skip the 'then statement' to here if the condition didn't pass
+		emit_byte((u8)Op::POP);	   // Pop the result of the condition expression off the stack as a statement must have zero stack effect
+		if (match(TokenType::ELSE))
+		{
+			statement();
+		}
+		patch_jump(else_jump);	  // Skip the 'else statement' to here if the condition did pass
 	}
 
 	void block()

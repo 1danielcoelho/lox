@@ -1,10 +1,10 @@
-var a = 2;
-
+print "before";
+if (2 == 2)
 {
-  var a = 3;
-  var b = 2;
-  var c = a + b;
-  print c;
+  print "yup";
 }
-
-print a;
+else
+{
+  print "nope";
+}
+print "after";

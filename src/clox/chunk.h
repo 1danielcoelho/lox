@@ -29,6 +29,7 @@ namespace Lox
 		NOT,
 		NEGATE,
 		PRINT,
+		JUMP,
 		JUMP_IF_FALSE,
 		RETURN
 	};
@@ -51,5 +52,6 @@ namespace Lox
 		i32 print_simple_instruction(const char* op_name, i32 offset) const;
 		i32 print_constant_instruction(const char* op_name, i32 offset) const;
 		i32 print_byte_instruction(const char* op_name, i32 offset) const;
+		i32 print_jump_instruction(const char* op_name, i32 sign, i32 offset) const;
 	};
 }	 // namespace Lox

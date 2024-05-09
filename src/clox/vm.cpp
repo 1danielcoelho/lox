@@ -92,11 +92,12 @@ namespace VMImpl
 		while (true)
 		{
 #if DEBUG_TRACE_EXECUTION
+			std::cout << "[";
 			for (const Value& value : vm.stack)
 			{
 				std::cout << "[ " << to_string(value) << " ]";
 			}
-			std::cout << std::endl;
+			std::cout << "]" << std::endl;
 
 			vm.chunk->disassemble_instruction((i32)(vm.ip - vm.chunk->code.data()));
 #endif
@@ -306,7 +307,13 @@ namespace VMImpl
 				}
 				case Op::PRINT:
 				{
-					std::cout << to_string(pop()) << std::endl;
+					std::cout << ">> " << to_string(pop()) << std::endl;
+					break;
+				}
+				case Op::JUMP:
+				{
+					u16 offset = read_short();
+					vm.ip += offset;
 					break;
 				}
 				case Op::JUMP_IF_FALSE:
