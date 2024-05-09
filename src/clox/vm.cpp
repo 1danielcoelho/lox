@@ -325,6 +325,12 @@ namespace VMImpl
 					}
 					break;
 				}
+				case Op::LOOP:
+				{
+					u16 offset = read_short();
+					vm.ip -= offset;
+					break;
+				}
 				case Op::RETURN:
 				{
 					return InterpretResult::OK;

@@ -138,6 +138,11 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			return print_jump_instruction("JUMP_IF_FALSE", 1, offset);
 			break;
 		}
+		case Lox::Op::LOOP:
+		{
+			return print_jump_instruction("LOOP", -1, offset);
+			break;
+		}
 		case Lox::Op::RETURN:
 		{
 			return print_simple_instruction("RETURN", offset);

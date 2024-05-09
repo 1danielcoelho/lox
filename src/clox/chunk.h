@@ -31,6 +31,7 @@ namespace Lox
 		PRINT,
 		JUMP,
 		JUMP_IF_FALSE,
+		LOOP,
 		RETURN
 	};
 

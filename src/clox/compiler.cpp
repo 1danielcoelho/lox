@@ -68,9 +68,13 @@ namespace CompilerImpl
 	void expression();
 	void statement();
 	void declaration();
+	void var_declaration();
 	void and_(bool can_assign);
 	void or_(bool can_assign);
 	void parse_precedence(Precedence prec);
+	void expression_statement();
+	void begin_scope();
+	void end_scope();
 
 	void init_compiler(Compiler* compiler)
 	{
@@ -233,6 +237,20 @@ namespace CompilerImpl
 		emit_byte(0xFF);
 		emit_byte(0xFF);
 		return static_cast<i32>(current_chunk()->code.size() - 2);
+	}
+
+	void emit_loop(i32 loop_start)
+	{
+		emit_byte((u8)Op::LOOP);
+
+		i32 offset = (i32)(current_chunk()->code.size() - loop_start + 2);
+		if (offset > UINT16_MAX)
+		{
+			error("Loop body too large");
+		}
+
+		emit_byte((offset >> 8) & 0xFF);
+		emit_byte(offset & 0xFF);
 	}
 
 	void emit_return()
@@ -614,6 +632,88 @@ namespace CompilerImpl
 		emit_byte((u8)Op::PRINT);
 	}
 
+	void for_statement()
+	{
+		begin_scope();
+
+		// Initializer
+		consume(TokenType::LEFT_PAREN, "Expected '(' after 'for'");
+		if (match(TokenType::SEMICOLON))
+		{
+			// No initializer
+		}
+		else if (match(TokenType::VAR))
+		{
+			var_declaration();
+		}
+		else
+		{
+			// Use this instead of `expression` because it looks for the semicolon and pops the result off the stack on its own
+			expression_statement();
+		}
+
+		// Condition
+		i32 loop_start = (i32)(current_chunk()->code.size());
+		i32 exit_jump = -1;
+		if (!match(TokenType::SEMICOLON))
+		{
+			expression();
+			consume(TokenType::SEMICOLON, "Expected ';' after loop condition");
+
+			// Jump out of the loop if the condition is false
+			exit_jump = emit_jump(Op::JUMP_IF_FALSE);
+			emit_byte((u8)Op::POP);	   // Pop the condition expression result
+		}
+
+		// Increment
+		if (!match(TokenType::RIGHT_PAREN))
+		{
+			// We'll jump into the body first, but re-wire things:
+			//
+			// After the body `statement`, the `emit_loop(loop_start)` will take us to increment_start
+			// and run the increment expression again, then pop it off the stack and using the
+			// `emit_loop(loop_start)` get us back to before the condition block again
+			i32 body_jump = emit_jump(Op::JUMP);
+			i32 increment_start = (i32)(current_chunk()->code.size());
+
+			expression();
+			emit_byte((u8)Op::POP);
+			consume(TokenType::RIGHT_PAREN, "Expected ')' after for clauses");
+
+			emit_loop(loop_start);
+			loop_start = increment_start;
+			patch_jump(body_jump);
+		}
+
+		statement();
+		emit_loop(loop_start);
+
+		if (exit_jump != -1)
+		{
+			patch_jump(exit_jump);
+			emit_byte((u8)Op::POP);	   // Pop the condition expression result
+		}
+
+		end_scope();
+	}
+
+	void while_statement()
+	{
+		i32 loop_start = (i32)current_chunk()->code.size();
+
+		consume(TokenType::LEFT_PAREN, "Expected '(' after 'while'");
+		expression();
+		consume(TokenType::RIGHT_PAREN, "Expected ')' after condition");
+
+		i32 exit_jump = emit_jump(Op::JUMP_IF_FALSE);
+		emit_byte((u8)Op::POP);
+		statement();
+		emit_loop(loop_start);
+
+		patch_jump(exit_jump);
+		emit_byte((u8)Op::POP);
+	}
+
 	void expression_statement()
 	{
 		expression();
@@ -676,6 +776,14 @@ namespace CompilerImpl
 		else if (match(TokenType::IF))
 		{
 			if_statement();
+		}
+		else if (match(TokenType::FOR))
+		{
+			for_statement();
+		}
+		else if (match(TokenType::WHILE))
+		{
+			while_statement();
 		}
 		else if (match(TokenType::LEFT_BRACE))
 		{
