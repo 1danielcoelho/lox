@@ -21,13 +21,17 @@ namespace VMImpl
 	{
 		std::cerr << message << std::endl;
 
+		CallFrame* frame = &vm.frames[vm.frames_position - 1];
+
 		// The -1 is because the interpreter advances past each instruction before executing it,
 		// so if we failed now the bad line was one before the current one
-		size_t instruction = vm.ip - vm.chunk->code.data() - 1;
-		i32 line = vm.chunk->lines[instruction];
+		size_t instruction = frame->ip - frame->function->chunk.code.data() - 1;
+
+		i32 line = frame->function->chunk.lines[instruction];
+
 		std::cerr << std::format("[line {}] in script", line) << std::endl;
 
-		vm.stack.clear();
+		vm.stack_position = 0;
 	}
 
 	bool is_falsey(Value value)
@@ -47,35 +51,33 @@ namespace VMImpl
 
 	void push(Value value)
 	{
-		vm.stack.push_back(value);
+		vm.stack[vm.stack_position++] = value;
 	}
 
 	Value pop()
 	{
-		Value last = vm.stack.back();
-		vm.stack.pop_back();
-		return last;
+		return vm.stack[--vm.stack_position];
 	}
 
 	Value peek(i32 distance)
 	{
-		return vm.stack[vm.stack.size() - 1 - distance];
+		return vm.stack[vm.stack_position - 1 - distance];
 	}
 
-	u8 read_byte()
+	u8 read_byte(CallFrame* frame)
 	{
-		return *vm.ip++;
+		return *frame->ip++;
 	}
 
-	u16 read_short()
+	u16 read_short(CallFrame* frame)
 	{
-		vm.ip += 2;
-		return (u16)((vm.ip[-2] << 8) | vm.ip[-1]);
+		frame->ip += 2;
+		return (u16)((frame->ip[-2] << 8) | frame->ip[-1]);
 	}
 
-	Value read_constant()
+	Value read_constant(CallFrame* frame)
 	{
-		return vm.chunk->constants[read_byte()];
+		return frame->function->chunk.constants[read_byte(frame)];
 	}
 
 	void concatenate()
@@ -89,25 +91,28 @@ namespace VMImpl
 
 	InterpretResult run()
 	{
+		CallFrame* frame = &vm.frames[vm.frames_position - 1];
+
 		while (true)
 		{
 #if DEBUG_TRACE_EXECUTION
 			std::cout << "[";
-			for (const Value& value : vm.stack)
+			for (i32 index = 0; index < vm.stack_position; ++index)
 			{
+				const Value& value = vm.stack[index];
 				std::cout << "[ " << to_string(value) << " ]";
 			}
 			std::cout << "]" << std::endl;
 
-			vm.chunk->disassemble_instruction((i32)(vm.ip - vm.chunk->code.data()));
+			frame->function->chunk.disassemble_instruction((i32)(frame->ip - frame->function->chunk.code.data()));
 #endif
 
-			Op instruction = static_cast<Op>(read_byte());
+			Op instruction = static_cast<Op>(read_byte(frame));
 			switch (instruction)
 			{
 				case Op::CONSTANT:
 				{
-					Value constant = read_constant();
+					Value constant = read_constant(frame);
 					push(constant);
 					break;
 				}
@@ -135,22 +140,22 @@ namespace VMImpl
 				{
 					// Yes this pushes a copy of the value back onto the stack. The idea being that
 					// other bytecode instructions will look for data only at the top of the stack
-					u8 slot = read_byte();
-					push(vm.stack[slot]);
+					u8 slot = read_byte(frame);
+					push(frame->slots[slot]);
 					break;
 				}
 				case Op::SET_LOCAL:
 				{
 					// Note that it doesn't pop, as assignment is an expression and every expression produces
 					// a value (here the assigned value itself). Tthe value is left at the top of the stack
-					u8 slot = read_byte();
-					vm.stack[slot] = peek(0);
+					u8 slot = read_byte(frame);
+					frame->slots[slot] = peek(0);
 					break;
 				}
 				case Op::GET_GLOBAL:
 				{
 					// Variable name is stored as a constant
-					Value constant = read_constant();
+					Value constant = read_constant(frame);
 					Lox::ObjectString* obj_string = as_string(constant);
 					const std::string& variable_name = obj_string->get_string();
 
@@ -170,7 +175,7 @@ namespace VMImpl
 				case Op::DEFINE_GLOBAL:
 				{
 					// Variable name is stored as a constant
-					Value constant = read_constant();
+					Value constant = read_constant(frame);
 					Lox::ObjectString* obj_string = as_string(constant);
 
 					vm.globals[obj_string->get_string()] = peek(0);	   // Initializer value
@@ -180,7 +185,7 @@ namespace VMImpl
 				case Op::SET_GLOBAL:
 				{
 					// Variable name is stored as a constant
-					Value constant = read_constant();
+					Value constant = read_constant(frame);
 					Lox::ObjectString* obj_string = as_string(constant);
 					const std::string& variable_name = obj_string->get_string();
 
@@ -312,23 +317,23 @@ namespace VMImpl
 				}
 				case Op::JUMP:
 				{
-					u16 offset = read_short();
-					vm.ip += offset;
+					u16 offset = read_short(frame);
+					frame->ip += offset;
 					break;
 				}
 				case Op::JUMP_IF_FALSE:
 				{
-					u16 offset = read_short();
+					u16 offset = read_short(frame);
 					if (is_falsey(peek(0)))
 					{
-						vm.ip += offset;
+						frame->ip += offset;
 					}
 					break;
 				}
 				case Op::LOOP:
 				{
-					u16 offset = read_short();
-					vm.ip -= offset;
+					u16 offset = read_short(frame);
+					frame->ip -= offset;
 					break;
 				}
 				case Op::RETURN:
@@ -353,14 +358,19 @@ Lox::InterpretResult Lox::interpret(const char* source)
 {
 	using namespace VMImpl;
 
-	Chunk chunk;
-	if (!Lox::compile(source, chunk))
+	ObjectFunction* function = Lox::compile(source);
+	if (function == nullptr)
 	{
 		return Lox::InterpretResult::COMPILE_ERROR;
 	}
 
-	vm.chunk = &chunk;
-	vm.ip = vm.chunk->code.data();
+	// Put the function itself into stack slot zero (the compiler set this aside for us)
+	push(function);
+
+	CallFrame* frame = &vm.frames[vm.frames_position++];
+	frame->function = function;
+	frame->ip = function->chunk.code.data();
+	frame->slots = vm.stack.data();
 
 	return run();
 }

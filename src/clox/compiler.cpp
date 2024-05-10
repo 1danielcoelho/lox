@@ -53,8 +53,17 @@ namespace CompilerImpl
 		i32 depth = UNINITIALIZED;
 	};
 
+	enum class FunctionType : u8
+	{
+		FUNCTION,	 // Compiling a function body
+		SCRIPT		 // Compiling top-level code
+	};
+
 	struct Compiler
 	{
+		ObjectFunction* function = nullptr;
+		FunctionType type;
+
 		std::array<Local, UINT8_MAX + 1> locals;
 		i32 local_count = 0;
 		i32 scope_depth = 0;
@@ -62,7 +71,7 @@ namespace CompilerImpl
 
 	Parser parser;
 	Chunk* compiling_chunk;
-	Compiler* current = nullptr;
+	Compiler* current_compiler = nullptr;
 
 	const ParseRule* get_rule(TokenType type);
 	void expression();
@@ -76,11 +85,19 @@ namespace CompilerImpl
 	void begin_scope();
 	void end_scope();
 
-	void init_compiler(Compiler* compiler)
+	void init_compiler(Compiler* compiler, FunctionType type)
 	{
+		compiler->type = type;
 		compiler->local_count = 0;
 		compiler->scope_depth = 0;
-		current = compiler;
+		compiler->function = ObjectFunction::allocate();
+		current_compiler = compiler;
+
+		// The compiler implicitly claims stack slot zero for the VM's internal use
+		Local* local = &current_compiler->locals[current_compiler->local_count++];
+		local->depth = 0;
+		local->name.start = "";
+		local->name.length = 0;
 	}
 
 	void error_at(Token* token, const char* message)
@@ -165,7 +182,7 @@ namespace CompilerImpl
 
 	Chunk* current_chunk()
 	{
-		return compiling_chunk;
+		return &current_compiler->function->chunk;
 	}
 
 	u8 make_constant(Value value)
@@ -277,16 +294,19 @@ namespace CompilerImpl
 		current_chunk()->code[offset + 1] = (distance >> 0) & 0xFF;
 	}
 
-	void end_compiler()
+	ObjectFunction* end_compiler()
 	{
 		emit_return();
+		ObjectFunction* function = current_compiler->function;
 
 #if DEBUG_PRINT_CODE
 		if (!parser.had_error)
 		{
-			current_chunk()->disassemble_chunk("code");
+			current_chunk()->disassemble_chunk(function->name != nullptr ? function->name->get_string().c_str() : "<script>");
 		}
 #endif
+
+		return function;
 	}
 
 	void number([[maybe_unused]] bool can_assign)
@@ -446,7 +466,7 @@ namespace CompilerImpl
 	{
 		Op get_op;
 		Op set_op;
-		i32 op_arg = resolve_local(current, name);
+		i32 op_arg = resolve_local(current_compiler, name);
 		if (op_arg != -1)
 		{
 			get_op = Op::GET_LOCAL;
@@ -753,17 +773,17 @@ namespace CompilerImpl
 
 	void begin_scope()
 	{
-		current->scope_depth++;
+		current_compiler->scope_depth++;
 	}
 
 	void end_scope()
 	{
-		current->scope_depth--;
+		current_compiler->scope_depth--;
 
-		while (current->local_count > 0 && current->locals[current->local_count - 1].depth > current->scope_depth)
+		while (current_compiler->local_count > 0 && current_compiler->locals[current_compiler->local_count - 1].depth > current_compiler->scope_depth)
 		{
 			emit_byte((u8)Op::POP);
-			current->local_count--;
+			current_compiler->local_count--;
 		}
 	}
 
@@ -799,35 +819,35 @@ namespace CompilerImpl
 
 	void add_local(const Token& var_name)
 	{
-		if (current->local_count == UINT8_MAX + 1)
+		if (current_compiler->local_count == UINT8_MAX + 1)
 		{
 			error("Too many local variables");
 			return;
 		}
 
-		Local* local = &current->locals[current->local_count++];
+		Local* local = &current_compiler->locals[current_compiler->local_count++];
 		local->name = var_name;
-		local->depth = current->scope_depth;
+		local->depth = current_compiler->scope_depth;
 	}
 
 	void mark_initialized()
 	{
-		current->locals[current->local_count - 1].depth = current->scope_depth;
+		current_compiler->locals[current_compiler->local_count - 1].depth = current_compiler->scope_depth;
 	}
 
 	void declare_variable()
 	{
-		if (current->scope_depth == 0)
+		if (current_compiler->scope_depth == 0)
 		{
 			return;
 		}
 
 		const Token& var_name = parser.previous;
-		for (i32 i = current->local_count - 1; i >= 0; i--)
+		for (i32 i = current_compiler->local_count - 1; i >= 0; i--)
 		{
-			Local* local = &current->locals[i];
+			Local* local = &current_compiler->locals[i];
 
-			if (local->depth != -1 && local->depth < current->scope_depth)
+			if (local->depth != -1 && local->depth < current_compiler->scope_depth)
 			{
 				break;
 			}
@@ -845,7 +865,7 @@ namespace CompilerImpl
 	{
 		// Don't need to do anything at runtime: The temporary for the variable's value
 		// is already in the stack anyway
-		if (current->scope_depth > 0)
+		if (current_compiler->scope_depth > 0)
 		{
 			mark_initialized();
 			return;
@@ -881,7 +901,7 @@ namespace CompilerImpl
 		consume(TokenType::IDENTIFIER, error_message);
 
 		declare_variable();
-		if (current->scope_depth > 0)
+		if (current_compiler->scope_depth > 0)
 		{
 			// "At runtime, locals aren’t looked up by name. There’s no need to stuff the variable’s name into
 			// the constant table, so if the declaration is inside a local scope, we return a dummy table index instead."
@@ -928,16 +948,15 @@ namespace CompilerImpl
 
 }	 // namespace CompilerImpl
 
-bool Lox::compile(const char* source, Lox::Chunk& chunk)
+Lox::ObjectFunction* Lox::compile(const char* source)
 {
 	using namespace CompilerImpl;
 
 	init_scanner(source);
 
 	Compiler compiler;
-	init_compiler(&compiler);
+	init_compiler(&compiler, FunctionType::SCRIPT);
 
-	compiling_chunk = &chunk;
 	parser.had_error = false;
 	parser.panic_mode = false;
 
@@ -948,6 +967,6 @@ bool Lox::compile(const char* source, Lox::Chunk& chunk)
 		declaration();
 	}
 
-	end_compiler();
-	return !parser.had_error;
+	ObjectFunction* function = end_compiler();
+	return parser.had_error ? nullptr : function;
 }

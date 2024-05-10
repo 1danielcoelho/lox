@@ -1,6 +1,8 @@
 #include "object.h"
 #include "vm.h"
 
+#include <format>
+
 std::string Lox::Object::to_string() const
 {
 	return "";
@@ -42,4 +44,17 @@ const std::string& Lox::ObjectString::get_string() const
 Lox::ObjectString::ObjectString(const std::string& in_string)
 	: string(in_string)
 {
+}
+
+Lox::ObjectFunction* Lox::ObjectFunction::allocate()
+{
+	Lox::ObjectFunction* function = new Lox::ObjectFunction();
+	function->arity = 0;
+	function->name = nullptr;
+	return function;
+}
+
+std::string Lox::ObjectFunction::to_string() const
+{
+	return name ? std::format("<fn {}>", name->get_string()) : "<script>";
 }

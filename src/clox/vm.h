@@ -2,11 +2,16 @@
 
 #include "chunk.h"
 
+#include <array>
 #include <string>
 #include <unordered_map>
 
+#define FRAMES_MAX 64
+#define STACK_MAX (FRAMES_MAX * (UINT8_MAX + 1))
+
 namespace Lox
 {
+
 	enum class InterpretResult
 	{
 		OK,
@@ -14,15 +19,21 @@ namespace Lox
 		RUNTIME_ERROR
 	};
 
+	struct CallFrame
+	{
+		ObjectFunction* function = nullptr;
+		u8* ip = nullptr;		   // Where to jump back to after the call is complete, in the caller's bytecode (maybe?)
+		Value* slots = nullptr;	   // Points to the VM's value stack at the first slot this function can use
+	};
+
 	class VM
 	{
 	public:
-		const Lox::Chunk* chunk = nullptr;
-		const u8* ip = nullptr;	   // Points to the *next* instruction to execute
+		std::array<CallFrame, FRAMES_MAX> frames;
+		i32 frames_position = 0;	// Points at the *next free position*
 
-		// TODO: Maybe use a std::array and fixed size? This looks simple though. It would be neat to see the
-		// performance benefit of having the stack on the actual, uh, stack, later
-		std::vector<Lox::Value> stack;
+		std::array<Lox::Value, STACK_MAX> stack;
+		i32 stack_position = 0;	   // Points at the *next free position*
 
 		Lox::Object* objects = nullptr;
 
@@ -38,4 +49,4 @@ namespace Lox
 	void init_VM();
 	InterpretResult interpret(const char* source);
 	void free_VM();
-}
+}	 // namespace Lox

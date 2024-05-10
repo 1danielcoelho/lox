@@ -1,5 +1,6 @@
 #pragma once
 
+#include "chunk.h"
 #include "common.h"
 
 #include <string>
@@ -35,5 +36,20 @@ namespace Lox
 		std::string string;
 
 		ObjectString(const std::string& string);
+	};
+
+	class ObjectFunction : public Object
+	{
+	public:
+		i32 arity = 0;
+		Chunk chunk;
+		ObjectString* name;
+
+	public:
+		// TODO: I probably don't need any of this, but I still am not sure where he's
+		// going with garbage collection later
+		static ObjectFunction* allocate();
+
+		virtual std::string to_string() const override;
 	};
 }	 // namespace Lox

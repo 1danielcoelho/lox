@@ -3,6 +3,7 @@
 namespace Lox
 {
 	class Chunk;
+	class ObjectFunction;
 
-	bool compile(const char* source, Chunk& chunk);
+	ObjectFunction* compile(const char* source);
 }
