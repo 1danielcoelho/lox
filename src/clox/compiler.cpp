@@ -61,6 +61,7 @@ namespace CompilerImpl
 
 	struct Compiler
 	{
+		Compiler* enclosing = nullptr;
 		ObjectFunction* function = nullptr;
 		FunctionType type;
 
@@ -84,14 +85,24 @@ namespace CompilerImpl
 	void expression_statement();
 	void begin_scope();
 	void end_scope();
+	u8 parse_variable(const char* error_message);
+	void define_variable(u8 global_index);
 
 	void init_compiler(Compiler* compiler, FunctionType type)
 	{
+		compiler->enclosing = current_compiler;
 		compiler->type = type;
 		compiler->local_count = 0;
 		compiler->scope_depth = 0;
 		compiler->function = ObjectFunction::allocate();
 		current_compiler = compiler;
+
+		if (type != FunctionType::SCRIPT)
+		{
+			current_compiler->function->name = Lox::ObjectString::allocate(	   //
+				std::string{parser.previous.start, (size_t)parser.previous.length}
+			);
+		}
 
 		// The compiler implicitly claims stack slot zero for the VM's internal use
 		Local* local = &current_compiler->locals[current_compiler->local_count++];
@@ -306,6 +317,7 @@ namespace CompilerImpl
 		}
 #endif
 
+		current_compiler = current_compiler->enclosing;
 		return function;
 	}
 
@@ -771,6 +783,37 @@ namespace CompilerImpl
 		consume(TokenType::RIGHT_BRACE, "Expected '}' after block");
 	}
 
+	void function(FunctionType type)
+	{
+		Compiler compiler;
+		init_compiler(&compiler, type);
+		begin_scope();
+
+		consume(TokenType::LEFT_PAREN, "Expected '(' after function name");
+		if (!check(TokenType::RIGHT_PAREN))
+		{
+			do
+			{
+				current_compiler->function->arity++;
+				if (current_compiler->function->arity > 255)
+				{
+					error_at_current("Can't have more than 255 parameters");
+				}
+
+				u8 constant = parse_variable("Expected parameter name");
+				define_variable(constant);
+			} while (match(TokenType::COMMA));
+		}
+
+		consume(TokenType::RIGHT_PAREN, "Expected ')' after parameters");
+		consume(TokenType::LEFT_BRACE, "Expected '{' before function body");
+
+		block();
+
+		ObjectFunction* function = end_compiler();
+		emit_bytes((u8)Op::CONSTANT, make_constant(function));
+	}
+
 	void begin_scope()
 	{
 		current_compiler->scope_depth++;
@@ -832,6 +875,13 @@ namespace CompilerImpl
 
 	void mark_initialized()
 	{
+		// If we're calling this when compiling something on top-level (like a top-level function
+		// declaration), there is no local variable so we shouldn't do anything here
+		if (current_compiler->scope_depth == 0)
+		{
+			return;
+		}
+
 		current_compiler->locals[current_compiler->local_count - 1].depth = current_compiler->scope_depth;
 	}
 
@@ -911,6 +961,14 @@ namespace CompilerImpl
 		return identifier_constant(parser.previous);
 	}
 
+	void fun_declaration()
+	{
+		u8 global = parse_variable("Expected function name");
+		mark_initialized();
+		function(FunctionType::FUNCTION);
+		define_variable(global);
+	}
+
 	void var_declaration()
 	{
 		u8 global_index = parse_variable("Expected variable name");
@@ -931,7 +989,11 @@ namespace CompilerImpl
 
 	void declaration()
 	{
-		if (match(TokenType::VAR))
+		if (match(TokenType::FUN))
+		{
+			fun_declaration();
+		}
+		else if (match(TokenType::VAR))
 		{
 			var_declaration();
 		}

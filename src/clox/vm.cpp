@@ -93,6 +93,10 @@ namespace VMImpl
 	{
 		CallFrame* frame = &vm.frames[vm.frames_position - 1];
 
+#if DEBUG_TRACE_EXECUTION
+		std::cout << "----------------------" << std::endl;
+#endif
+
 		while (true)
 		{
 #if DEBUG_TRACE_EXECUTION

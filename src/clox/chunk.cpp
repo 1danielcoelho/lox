@@ -14,8 +14,6 @@ void Lox::Chunk::disassemble_chunk(const char* chunk_name) const
 	{
 		offset = disassemble_instruction(offset);
 	}
-
-	std::cout << "==========" << std::endl;
 }
 
 i32 Lox::Chunk::disassemble_instruction(i32 offset) const

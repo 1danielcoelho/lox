@@ -1,10 +1,5 @@
-print "before";
-if (2 == 2)
-{
-  print "yup";
+fun areWeHavingItYet() {
+  print "Yes we are!";
 }
-else
-{
-  print "nope";
-}
-print "after";
+
+print areWeHavingItYet;
