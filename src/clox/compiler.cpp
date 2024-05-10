@@ -430,6 +430,31 @@ namespace CompilerImpl
 		}
 	}
 
+	u8 argument_list()
+	{
+		u8 arg_count = 0;
+		if (!check(TokenType::RIGHT_PAREN))
+		{
+			do
+			{
+				expression();
+				if (arg_count == 255)
+				{
+					error("Can't have more than 255 arguments");
+				}
+				arg_count++;
+			} while (match(TokenType::COMMA));
+		}
+		consume(TokenType::RIGHT_PAREN, "Expected ')' after arguments");
+		return arg_count;
+	}
+
+	void call([[maybe_unused]] bool can_assign)
+	{
+		u8 arg_count = argument_list();
+		emit_bytes((u8)Op::CALL, arg_count);
+	}
+
 	void grouping([[maybe_unused]] bool can_assign)
 	{
 		expression();
@@ -570,7 +595,7 @@ namespace CompilerImpl
 
 		// clang-format off
 		//                                      prefix   infix    infix precedence
-		result[(u8)TokenType::LEFT_PAREN]    = {grouping, nullptr,  Precedence::NONE};
+		result[(u8)TokenType::LEFT_PAREN]    = {grouping, call,  	Precedence::NONE};
 		result[(u8)TokenType::RIGHT_PAREN]   = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::LEFT_BRACE]    = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::RIGHT_BRACE]   = {nullptr,  nullptr,  Precedence::NONE};

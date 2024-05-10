@@ -17,21 +17,34 @@ namespace VMImpl
 {
 	using namespace Lox;
 
+	void reset_stack()
+	{
+		vm.stack_position = 0;
+		vm.frames_position = 0;
+	}
+
 	void runtime_error(const char* message)
 	{
 		std::cerr << message << std::endl;
 
-		CallFrame* frame = &vm.frames[vm.frames_position - 1];
+		for (i32 i = vm.frames_position - 1; i >= 0; i--)
+		{
+			CallFrame* frame = &vm.frames[i];
+			ObjectFunction* function = frame->function;
+			size_t instruction = frame->ip - frame->function->chunk.code.data() - 1;
+			std::cerr << std::format("[line {}] in script", frame->function->chunk.lines[instruction]);
 
-		// The -1 is because the interpreter advances past each instruction before executing it,
-		// so if we failed now the bad line was one before the current one
-		size_t instruction = frame->ip - frame->function->chunk.code.data() - 1;
+			if (function->name == nullptr)
+			{
+				std::cerr << "script" << std::endl;
+			}
+			else
+			{
+				std::cerr << function->name->get_string() << std::endl;
+			}
+		}
 
-		i32 line = frame->function->chunk.lines[instruction];
-
-		std::cerr << std::format("[line {}] in script", line) << std::endl;
-
-		vm.stack_position = 0;
+		reset_stack();
 	}
 
 	bool is_falsey(Value value)
@@ -87,6 +100,41 @@ namespace VMImpl
 
 		ObjectString* concat = Lox::ObjectString::allocate(a->get_string() + b->get_string());
 		push(concat);
+	}
+
+	bool call(ObjectFunction* function, i32 arg_count)
+	{
+		if (arg_count != function->arity)
+		{
+			runtime_error(std::format("Expected {} arguments but got {}", function->arity, arg_count).c_str());
+			return false;
+		}
+
+		if (vm.frames_position == FRAMES_MAX)
+		{
+			runtime_error("Stack overflow");
+			return false;
+		}
+
+		CallFrame* frame = &vm.frames[vm.frames_position++];
+		frame->function = function;
+		frame->ip = function->chunk.code.data();
+		frame->slots = &vm.stack[vm.stack_position - arg_count - 1];	// The -1 accounts for stack slot zero, which the compiler sets aside
+		return true;
+	}
+
+	bool call_value(Value callee, i32 arg_count)
+	{
+		if (Object* callee_object = as_object(callee))
+		{
+			if (ObjectFunction* function = dynamic_cast<ObjectFunction*>(callee_object))
+			{
+				return call(function, arg_count);
+			}
+		}
+
+		runtime_error("Can only call functions and classes");
+		return false;
 	}
 
 	InterpretResult run()
@@ -340,6 +388,17 @@ namespace VMImpl
 					frame->ip -= offset;
 					break;
 				}
+				case Op::CALL:
+				{
+					u8 arg_count = read_byte(frame);
+					if (!call_value(peek(arg_count), arg_count))
+					{
+						return InterpretResult::RUNTIME_ERROR;
+					}
+					// call_value created a new CallFrame
+					frame = &vm.frames[vm.frames_position - 1];
+					break;
+				}
 				case Op::RETURN:
 				{
 					return InterpretResult::OK;
@@ -356,12 +415,16 @@ namespace VMImpl
 
 void Lox::init_VM()
 {
+	using namespace VMImpl;
+
+	reset_stack();
 }
 
 Lox::InterpretResult Lox::interpret(const char* source)
 {
 	using namespace VMImpl;
 
+	// Compile the source code into a fake top-level "function"
 	ObjectFunction* function = Lox::compile(source);
 	if (function == nullptr)
 	{
@@ -371,10 +434,8 @@ Lox::InterpretResult Lox::interpret(const char* source)
 	// Put the function itself into stack slot zero (the compiler set this aside for us)
 	push(function);
 
-	CallFrame* frame = &vm.frames[vm.frames_position++];
-	frame->function = function;
-	frame->ip = function->chunk.code.data();
-	frame->slots = vm.stack.data();
+	// Set up the CallFrame for executing the function
+	call(function, 0);
 
 	return run();
 }
