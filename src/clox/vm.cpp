@@ -453,7 +453,7 @@ namespace VMImpl
 					ObjectClosure* closure = ObjectClosure::allocate(function);
 					push(closure);
 
-					for (i32 i = 0; i < closure->upvalues.size(); ++i)
+					for (i32 i = 0; i < function->upvalue_count; ++i)
 					{
 						u8 is_local = read_byte(frame);
 						u8 index = read_byte(frame);
