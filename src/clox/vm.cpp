@@ -31,7 +31,8 @@ namespace VMImpl
 		{
 			CallFrame* frame = &vm.frames[i];
 			ObjectFunction* function = frame->function;
-			size_t instruction = frame->ip - frame->function->chunk.code.data() - 1;
+			size_t instruction = frame->ip - frame->function->chunk.code.data() - 1;	// -1 because the ip points at th enext instruction, and we
+																						// want to report about the one that failed (last one)
 			std::cerr << std::format("[line {}] in script", frame->function->chunk.lines[instruction]);
 
 			if (function->name == nullptr)
@@ -401,7 +402,17 @@ namespace VMImpl
 				}
 				case Op::RETURN:
 				{
-					return InterpretResult::OK;
+					Value result = pop();
+					vm.frames_position--;
+					if (vm.frames_position == 0)
+					{
+						pop();
+						return InterpretResult::OK;
+					}
+
+					vm.stack_position = (i32)(frame->slots - vm.stack.data());
+					push(result);
+					frame = &vm.frames[vm.frames_position - 1];
 					break;
 				}
 				default:

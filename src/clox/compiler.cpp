@@ -283,6 +283,7 @@ namespace CompilerImpl
 
 	void emit_return()
 	{
+		emit_byte((u8)Op::NIL);
 		emit_byte((u8)Op::RETURN);
 	}
 
