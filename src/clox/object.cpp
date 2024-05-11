@@ -49,6 +49,9 @@ Lox::ObjectString::ObjectString(const std::string& in_string)
 Lox::ObjectFunction* Lox::ObjectFunction::allocate()
 {
 	Lox::ObjectFunction* function = new Lox::ObjectFunction();
+	function->next = vm.objects;
+	vm.objects = function;
+
 	function->arity = 0;
 	function->name = nullptr;
 	return function;

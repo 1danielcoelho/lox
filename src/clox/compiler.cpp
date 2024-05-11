@@ -596,7 +596,7 @@ namespace CompilerImpl
 
 		// clang-format off
 		//                                      prefix   infix    infix precedence
-		result[(u8)TokenType::LEFT_PAREN]    = {grouping, call,  	Precedence::NONE};
+		result[(u8)TokenType::LEFT_PAREN]    = {grouping, call,  	Precedence::CALL};
 		result[(u8)TokenType::RIGHT_PAREN]   = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::LEFT_BRACE]    = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::RIGHT_BRACE]   = {nullptr,  nullptr,  Precedence::NONE};

@@ -33,7 +33,7 @@ namespace VMImpl
 			ObjectFunction* function = frame->function;
 			size_t instruction = frame->ip - frame->function->chunk.code.data() - 1;	// -1 because the ip points at th enext instruction, and we
 																						// want to report about the one that failed (last one)
-			std::cerr << std::format("[line {}] in script", frame->function->chunk.lines[instruction]);
+			std::cerr << std::format("[line {}] in ", frame->function->chunk.lines[instruction]);
 
 			if (function->name == nullptr)
 			{
@@ -41,7 +41,7 @@ namespace VMImpl
 			}
 			else
 			{
-				std::cerr << function->name->get_string() << std::endl;
+				std::cerr << function->name->get_string() << "()" << std::endl;
 			}
 		}
 

@@ -1,6 +1,7 @@
-fun a()
-{
-  print "hi";
+fun a() { b(); }
+fun b() { c(); }
+fun c() {
+  c("too", "many");
 }
 
 a();
