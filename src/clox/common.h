@@ -17,5 +17,5 @@ using u64 = uint64_t;
 using f32 = float;
 using f64 = double;
 
-#define DEBUG_TRACE_EXECUTION 0
-#define DEBUG_PRINT_CODE 0
+#define DEBUG_TRACE_EXECUTION 1
+#define DEBUG_PRINT_CODE 1

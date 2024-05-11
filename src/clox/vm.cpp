@@ -37,10 +37,10 @@ namespace VMImpl
 		for (i32 i = vm.frames_position - 1; i >= 0; i--)
 		{
 			CallFrame* frame = &vm.frames[i];
-			ObjectFunction* function = frame->function;
-			size_t instruction = frame->ip - frame->function->chunk.code.data() - 1;	// -1 because the ip points at th enext instruction, and we
-																						// want to report about the one that failed (last one)
-			std::cerr << std::format("[line {}] in ", frame->function->chunk.lines[instruction]);
+			ObjectFunction* function = frame->closure->function;
+			size_t instruction = frame->ip - function->chunk.code.data() - 1;	 // -1 because the ip points at th enext instruction, and we
+																				 // want to report about the one that failed (last one)
+			std::cerr << std::format("[line {}] in ", function->chunk.lines[instruction]);
 
 			if (function->name == nullptr)
 			{
@@ -98,7 +98,7 @@ namespace VMImpl
 
 	Value read_constant(CallFrame* frame)
 	{
-		return frame->function->chunk.constants[read_byte(frame)];
+		return frame->closure->function->chunk.constants[read_byte(frame)];
 	}
 
 	void concatenate()
@@ -124,11 +124,11 @@ namespace VMImpl
 		pop();
 	}
 
-	bool call(ObjectFunction* function, i32 arg_count)
+	bool call(ObjectClosure* closure, i32 arg_count)
 	{
-		if (arg_count != function->arity)
+		if (arg_count != closure->function->arity)
 		{
-			runtime_error(std::format("Expected {} arguments but got {}", function->arity, arg_count).c_str());
+			runtime_error(std::format("Expected {} arguments but got {}", closure->function->arity, arg_count).c_str());
 			return false;
 		}
 
@@ -139,8 +139,8 @@ namespace VMImpl
 		}
 
 		CallFrame* frame = &vm.frames[vm.frames_position++];
-		frame->function = function;
-		frame->ip = function->chunk.code.data();
+		frame->closure = closure;
+		frame->ip = closure->function->chunk.code.data();
 		frame->slots = &vm.stack[vm.stack_position - arg_count - 1];	// The -1 accounts for stack slot zero, which the compiler sets aside
 		return true;
 	}
@@ -149,9 +149,9 @@ namespace VMImpl
 	{
 		if (Object* callee_object = as_object(callee))
 		{
-			if (ObjectFunction* function = dynamic_cast<ObjectFunction*>(callee_object))
+			if (ObjectClosure* closure = dynamic_cast<ObjectClosure*>(callee_object))
 			{
-				return call(function, arg_count);
+				return call(closure, arg_count);
 			}
 			else if (ObjectNativeFunction* native = dynamic_cast<ObjectNativeFunction*>(callee_object))
 			{
@@ -186,7 +186,7 @@ namespace VMImpl
 			}
 			std::cout << "]" << std::endl;
 
-			frame->function->chunk.disassemble_instruction((i32)(frame->ip - frame->function->chunk.code.data()));
+			frame->closure->function->chunk.disassemble_instruction((i32)(frame->ip - frame->closure->function->chunk.code.data()));
 #endif
 
 			Op instruction = static_cast<Op>(read_byte(frame));
@@ -429,6 +429,13 @@ namespace VMImpl
 					frame = &vm.frames[vm.frames_position - 1];
 					break;
 				}
+				case Op::CLOSURE:
+				{
+					ObjectFunction* function = as_function(read_constant(frame));
+					ObjectClosure* closure = ObjectClosure::allocate(function);
+					push(closure);
+					break;
+				}
 				case Op::RETURN:
 				{
 					Value result = pop();
@@ -473,11 +480,14 @@ Lox::InterpretResult Lox::interpret(const char* source)
 		return Lox::InterpretResult::COMPILE_ERROR;
 	}
 
-	// Put the function itself into stack slot zero (the compiler set this aside for us)
+	// Force GC to retain the function while we allocate a new closure to wrap it with
 	push(function);
+	ObjectClosure* closure = ObjectClosure::allocate(function);
+	pop();
 
-	// Set up the CallFrame for executing the function
-	call(function, 0);
+	// Put the closure itself into stack slot zero (the compiler set this aside for us).
+	push(closure);
+	call(closure, 0);
 
 	return run();
 }

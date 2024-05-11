@@ -49,8 +49,23 @@ namespace Lox
 		// TODO: I probably don't need any of this, but I still am not sure where he's
 		// going with garbage collection later
 		static ObjectFunction* allocate();
-
 		virtual std::string to_string() const override;
+
+	protected:
+		ObjectFunction(){};
+	};
+
+	class ObjectClosure : public Object
+	{
+	public:
+		ObjectFunction* function;
+
+	public:
+		static ObjectClosure* allocate(ObjectFunction* function);
+		virtual std::string to_string() const override;
+
+	protected:
+		ObjectClosure(){};
 	};
 
 	using NativeFn = Value (*)(i32 arg_count, Value* args);
@@ -62,5 +77,8 @@ namespace Lox
 	public:
 		static ObjectNativeFunction* allocate(NativeFn function);
 		virtual std::string to_string() const override;
+
+	protected:
+		ObjectNativeFunction(){};
 	};
 }	 // namespace Lox

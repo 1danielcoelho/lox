@@ -33,6 +33,7 @@ namespace Lox
 		JUMP_IF_FALSE,
 		LOOP,
 		CALL,
+		CLOSURE,
 		RETURN
 	};
 

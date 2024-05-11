@@ -145,6 +145,13 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 		{
 			return print_byte_instruction("CALL", offset);
 		}
+		case Lox::Op::CLOSURE:
+		{
+			offset++;
+			u8 const_index = code[offset++];
+			std::cout << std::format("CLOSURE {} {}", const_index, to_string(constants[const_index])) << std::endl;
+			return offset;
+		}
 		case Lox::Op::RETURN:
 		{
 			return print_simple_instruction("RETURN", offset);

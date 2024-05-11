@@ -856,7 +856,7 @@ namespace CompilerImpl
 		block();
 
 		ObjectFunction* function = end_compiler();
-		emit_bytes((u8)Op::CONSTANT, make_constant(function));
+		emit_bytes((u8)Op::CLOSURE, make_constant(function));
 	}
 
 	void begin_scope()

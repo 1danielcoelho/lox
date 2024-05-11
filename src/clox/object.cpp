@@ -62,6 +62,21 @@ std::string Lox::ObjectFunction::to_string() const
 	return name ? std::format("<fn {}>", name->get_string()) : "<script>";
 }
 
+Lox::ObjectClosure* Lox::ObjectClosure::allocate(ObjectFunction* function)
+{
+	Lox::ObjectClosure* closure = new Lox::ObjectClosure();
+	closure->next = vm.objects;
+	vm.objects = closure;
+
+	closure->function = function;
+	return closure;
+}
+
+std::string Lox::ObjectClosure::to_string() const
+{
+	return std::format("<closure of {}>", function ? function->to_string() : "nullptr");
+}
+
 Lox::ObjectNativeFunction* Lox::ObjectNativeFunction::allocate(NativeFn in_function)
 {
 	Lox::ObjectNativeFunction* function_obj = new Lox::ObjectNativeFunction();

@@ -21,7 +21,7 @@ namespace Lox
 
 	struct CallFrame
 	{
-		ObjectFunction* function = nullptr;
+		ObjectClosure* closure = nullptr;
 		u8* ip = nullptr;		   // Where to jump back to after the call is complete, in the caller's bytecode (maybe?)
 		Value* slots = nullptr;	   // Points to the VM's value stack at the first slot this function can use
 	};

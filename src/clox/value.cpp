@@ -53,6 +53,16 @@ bool Lox::is_native(const Lox::Value& val)
 	return false;
 }
 
+bool Lox::is_closure(const Lox::Value& val)
+{
+	if (is_object(val))
+	{
+		return as_closure(val);
+	}
+
+	return false;
+}
+
 f64 Lox::as_number(const Lox::Value& val)
 {
 	return std::get<f64>(val);
@@ -81,6 +91,11 @@ Lox::ObjectFunction* Lox::as_function(const Lox::Value& val)
 Lox::ObjectNativeFunction* Lox::as_native(const Lox::Value& val)
 {
 	return dynamic_cast<Lox::ObjectNativeFunction*>(as_object(val));
+}
+
+Lox::ObjectClosure* Lox::as_closure(const Lox::Value& val)
+{
+	return dynamic_cast<Lox::ObjectClosure*>(as_object(val));
 }
 
 bool Lox::values_equal(const Lox::Value& left_val, const Lox::Value& right_val)
