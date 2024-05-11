@@ -799,6 +799,25 @@ namespace CompilerImpl
 		patch_jump(else_jump);	  // Skip the 'else statement' to here if the condition did pass
 	}
 
+	void return_statement()
+	{
+		if (current_compiler->type == FunctionType::SCRIPT)
+		{
+			error("Can't return from top-level code");
+		}
+
+		if (match(TokenType::SEMICOLON))
+		{
+			emit_return();
+		}
+		else
+		{
+			expression();
+			consume(TokenType::SEMICOLON, "Expected ';' after return value");
+			emit_byte((u8)Op::RETURN);
+		}
+	}
+
 	void block()
 	{
 		while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::EOF_))
@@ -865,6 +884,10 @@ namespace CompilerImpl
 		else if (match(TokenType::IF))
 		{
 			if_statement();
+		}
+		else if (match(TokenType::RETURN))
+		{
+			return_statement();
 		}
 		else if (match(TokenType::FOR))
 		{

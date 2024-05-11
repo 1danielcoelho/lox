@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string>
 
+#include <time.h>
+
 namespace Lox
 {
 	VM vm;
@@ -16,6 +18,11 @@ namespace Lox
 namespace VMImpl
 {
 	using namespace Lox;
+
+	Value clock_native([[maybe_unused]] i32 arg_count, [[maybe_unused]] Value* args)
+	{
+		return (double)clock() / CLOCKS_PER_SEC;
+	}
 
 	void reset_stack()
 	{
@@ -103,6 +110,20 @@ namespace VMImpl
 		push(concat);
 	}
 
+	void define_native(const char* name, NativeFn function)
+	{
+		push(ObjectString::allocate(name));
+		push(ObjectNativeFunction::allocate(function));
+
+		// TODO: Why not relative to current stack pos?
+		// TODO: This is kind of silly: Given how I'm using std::unordered_map<std::string,...> I could just construct
+		// a new std::string here? It seems to be a GC thing
+		vm.globals[as_string(vm.stack[0])->get_string()] = vm.stack[1];
+
+		pop();
+		pop();
+	}
+
 	bool call(ObjectFunction* function, i32 arg_count)
 	{
 		if (arg_count != function->arity)
@@ -131,6 +152,14 @@ namespace VMImpl
 			if (ObjectFunction* function = dynamic_cast<ObjectFunction*>(callee_object))
 			{
 				return call(function, arg_count);
+			}
+			else if (ObjectNativeFunction* native = dynamic_cast<ObjectNativeFunction*>(callee_object))
+			{
+				NativeFn native_func = native->function;
+				Value result = native_func(arg_count, &vm.stack[vm.stack_position] - arg_count);
+				vm.stack_position -= arg_count + 1;
+				push(result);
+				return true;
 			}
 		}
 
@@ -429,6 +458,8 @@ void Lox::init_VM()
 	using namespace VMImpl;
 
 	reset_stack();
+
+	define_native("clock", clock_native);
 }
 
 Lox::InterpretResult Lox::interpret(const char* source)

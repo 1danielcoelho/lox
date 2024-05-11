@@ -61,3 +61,18 @@ std::string Lox::ObjectFunction::to_string() const
 {
 	return name ? std::format("<fn {}>", name->get_string()) : "<script>";
 }
+
+Lox::ObjectNativeFunction* Lox::ObjectNativeFunction::allocate(NativeFn in_function)
+{
+	Lox::ObjectNativeFunction* function_obj = new Lox::ObjectNativeFunction();
+	function_obj->next = vm.objects;
+	vm.objects = function_obj;
+
+	function_obj->function = in_function;
+	return function_obj;
+}
+
+std::string Lox::ObjectNativeFunction::to_string() const
+{
+	return "<native fn>";
+}

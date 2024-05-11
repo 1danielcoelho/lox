@@ -52,4 +52,15 @@ namespace Lox
 
 		virtual std::string to_string() const override;
 	};
+
+	using NativeFn = Value (*)(i32 arg_count, Value* args);
+	class ObjectNativeFunction : public Object
+	{
+	public:
+		NativeFn function;
+
+	public:
+		static ObjectNativeFunction* allocate(NativeFn function);
+		virtual std::string to_string() const override;
+	};
 }	 // namespace Lox
