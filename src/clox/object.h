@@ -42,6 +42,7 @@ namespace Lox
 	{
 	public:
 		i32 arity = 0;
+		i32 upvalue_count = 0;
 		Chunk chunk;
 		ObjectString* name;
 
@@ -55,10 +56,24 @@ namespace Lox
 		ObjectFunction(){};
 	};
 
+	class ObjectUpvalue : public Object
+	{
+	public:
+		Value* location = nullptr;
+
+	public:
+		static ObjectUpvalue* allocate(Value* slot);
+		virtual std::string to_string() const override;
+
+	protected:
+		ObjectUpvalue(){};
+	};
+
 	class ObjectClosure : public Object
 	{
 	public:
 		ObjectFunction* function;
+		std::vector<ObjectUpvalue*> upvalues;
 
 	public:
 		static ObjectClosure* allocate(ObjectFunction* function);

@@ -1,4 +1,5 @@
 #include "chunk.h"
+#include "object.h"
 
 #include <cassert>
 #include <format>
@@ -76,6 +77,16 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			return print_constant_instruction("SET_GLOBAL", offset);
 			break;
 		}
+		case Lox::Op::GET_UPVALUE:
+		{
+			return print_byte_instruction("GET_UPVALUE", offset);
+			break;
+		}
+		case Lox::Op::SET_UPVALUE:
+		{
+			return print_byte_instruction("SET_UPVALUE", offset);
+			break;
+		}
 		case Lox::Op::EQUAL:
 		{
 			return print_simple_instruction("EQUAL", offset);
@@ -150,6 +161,16 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			offset++;
 			u8 const_index = code[offset++];
 			std::cout << std::format("CLOSURE {} {}", const_index, to_string(constants[const_index])) << std::endl;
+
+			ObjectFunction* function = as_function(constants[const_index]);
+			for (i32 j = 0; j < function->upvalue_count; ++j)
+			{
+				i32 is_local = code[offset++];
+				i32 index = code[offset++];
+
+				std::cout << std::format("{:04}                {} {}", offset - 2, is_local ? "local" : "upvalue", index) << std::endl;
+			}
+
 			return offset;
 		}
 		case Lox::Op::RETURN:

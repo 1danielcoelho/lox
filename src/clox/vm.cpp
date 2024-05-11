@@ -167,6 +167,12 @@ namespace VMImpl
 		return false;
 	}
 
+	ObjectUpvalue* capture_upvalue(Value* local)
+	{
+		ObjectUpvalue* upvalue = ObjectUpvalue::allocate(local);
+		return upvalue;
+	}
+
 	InterpretResult run()
 	{
 		CallFrame* frame = &vm.frames[vm.frames_position - 1];
@@ -287,6 +293,18 @@ namespace VMImpl
 					// Note: This doesn't pop the value off the stack, as assignment is an expression, so it
 					// needs to leave that value there in case the assignment is nested inside some larger
 					// expression
+					break;
+				}
+				case Op::GET_UPVALUE:
+				{
+					u8 slot = read_byte(frame);
+					push(*frame->closure->upvalues[slot]->location);
+					break;
+				}
+				case Op::SET_UPVALUE:
+				{
+					u8 slot = read_byte(frame);
+					*frame->closure->upvalues[slot]->location = peek(0);
 					break;
 				}
 				case Op::EQUAL:
@@ -434,6 +452,23 @@ namespace VMImpl
 					ObjectFunction* function = as_function(read_constant(frame));
 					ObjectClosure* closure = ObjectClosure::allocate(function);
 					push(closure);
+
+					for (i32 i = 0; i < closure->upvalues.size(); ++i)
+					{
+						u8 is_local = read_byte(frame);
+						u8 index = read_byte(frame);
+						if (is_local)
+						{
+							closure->upvalues.push_back(capture_upvalue(frame->slots + index));
+						}
+						else
+						{
+							// When this executes, we're already on the "surrounding" function scope,
+							// so if we need to fetch an upvalue we just look into our current frame
+							closure->upvalues.push_back(frame->closure->upvalues[index]);
+						}
+					}
+
 					break;
 				}
 				case Op::RETURN:

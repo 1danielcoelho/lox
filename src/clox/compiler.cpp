@@ -53,6 +53,12 @@ namespace CompilerImpl
 		i32 depth = UNINITIALIZED;
 	};
 
+	struct Upvalue
+	{
+		u8 index;		  // Which local slot is captured
+		bool is_local;	  // True if it's a local variable of the surrounding function; False if it's itself an upvalue
+	};
+
 	enum class FunctionType : u8
 	{
 		FUNCTION,	 // Compiling a function body
@@ -67,6 +73,7 @@ namespace CompilerImpl
 
 		std::array<Local, UINT8_MAX + 1> locals;
 		i32 local_count = 0;
+		Upvalue upvalues[UINT8_MAX + 1];
 		i32 scope_depth = 0;
 	};
 
@@ -243,6 +250,53 @@ namespace CompilerImpl
 
 				return i;
 			}
+		}
+
+		return -1;
+	}
+
+	i32 add_upvalue(Compiler* compiler, u8 index, bool is_local)
+	{
+		i32 upvalue_count = compiler->function->upvalue_count;
+
+		// Reuse upvalue for the same slot index if possible
+		for (i32 i = 0; i < upvalue_count; ++i)
+		{
+			Upvalue* upvalue = &compiler->upvalues[i];
+			if (upvalue->index == index && upvalue->is_local == is_local)
+			{
+				return i;
+			}
+		}
+
+		if (upvalue_count == UINT8_MAX + 1)
+		{
+			error("Too many closure variables in function");
+			return 0;
+		}
+
+		compiler->upvalues[upvalue_count].is_local = is_local;
+		compiler->upvalues[upvalue_count].index = index;
+		return compiler->function->upvalue_count++;
+	}
+
+	i32 resolve_upvalue(Compiler* compiler, const Token& name)
+	{
+		if (compiler->enclosing == nullptr)
+		{
+			return -1;
+		}
+
+		i32 local = resolve_local(compiler->enclosing, name);
+		if (local != -1)
+		{
+			return add_upvalue(compiler, (u8)local, true);
+		}
+
+		i32 upvalue = resolve_upvalue(compiler->enclosing, name);
+		if (upvalue != -1)
+		{
+			return add_upvalue(compiler, (u8)upvalue, false);
 		}
 
 		return -1;
@@ -509,6 +563,11 @@ namespace CompilerImpl
 		{
 			get_op = Op::GET_LOCAL;
 			set_op = Op::SET_LOCAL;
+		}
+		else if ((op_arg = resolve_upvalue(current_compiler, name)) != -1)
+		{
+			get_op = Op::GET_UPVALUE;
+			set_op = Op::SET_UPVALUE;
 		}
 		else
 		{
@@ -857,6 +916,12 @@ namespace CompilerImpl
 
 		ObjectFunction* function = end_compiler();
 		emit_bytes((u8)Op::CLOSURE, make_constant(function));
+
+		for (i32 i = 0; i < function->upvalue_count; ++i)
+		{
+			emit_byte(compiler.upvalues[i].is_local ? 1 : 0);
+			emit_byte(compiler.upvalues[i].index);
+		}
 	}
 
 	void begin_scope()

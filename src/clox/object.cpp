@@ -53,6 +53,7 @@ Lox::ObjectFunction* Lox::ObjectFunction::allocate()
 	vm.objects = function;
 
 	function->arity = 0;
+	function->upvalue_count = 0;
 	function->name = nullptr;
 	return function;
 }
@@ -69,12 +70,28 @@ Lox::ObjectClosure* Lox::ObjectClosure::allocate(ObjectFunction* function)
 	vm.objects = closure;
 
 	closure->function = function;
+	closure->upvalues.reserve(function->upvalue_count);
 	return closure;
 }
 
 std::string Lox::ObjectClosure::to_string() const
 {
-	return std::format("<closure of {}>", function ? function->to_string() : "nullptr");
+	return function->to_string();
+}
+
+Lox::ObjectUpvalue* Lox::ObjectUpvalue::allocate(Value* slot)
+{
+	Lox::ObjectUpvalue* upvalue = new Lox::ObjectUpvalue();
+	upvalue->next = vm.objects;
+	vm.objects = upvalue;
+
+	upvalue->location = slot;
+	return upvalue;
+}
+
+std::string Lox::ObjectUpvalue::to_string() const
+{
+	return "upvalue";
 }
 
 Lox::ObjectNativeFunction* Lox::ObjectNativeFunction::allocate(NativeFn in_function)
