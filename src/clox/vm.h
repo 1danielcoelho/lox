@@ -11,6 +11,7 @@
 
 namespace Lox
 {
+	class ObjectUpvalue;
 
 	enum class InterpretResult
 	{
@@ -39,6 +40,8 @@ namespace Lox
 
 		// Where we collect interned strings
 		std::unordered_map<std::string, Lox::ObjectString*> strings;
+
+		ObjectUpvalue* open_upvalues = nullptr;
 
 		// Global variables stored by hash of the name string
 		std::unordered_map<std::string, Lox::Value> globals;

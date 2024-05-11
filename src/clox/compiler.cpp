@@ -51,6 +51,7 @@ namespace CompilerImpl
 	{
 		Token name;
 		i32 depth = UNINITIALIZED;
+		bool is_captured = false;
 	};
 
 	struct Upvalue
@@ -114,6 +115,7 @@ namespace CompilerImpl
 		// The compiler implicitly claims stack slot zero for the VM's internal use
 		Local* local = &current_compiler->locals[current_compiler->local_count++];
 		local->depth = 0;
+		local->is_captured = false;
 		local->name.start = "";
 		local->name.length = 0;
 	}
@@ -290,6 +292,7 @@ namespace CompilerImpl
 		i32 local = resolve_local(compiler->enclosing, name);
 		if (local != -1)
 		{
+			compiler->enclosing->locals[local].is_captured = true;
 			return add_upvalue(compiler, (u8)local, true);
 		}
 
@@ -935,7 +938,15 @@ namespace CompilerImpl
 
 		while (current_compiler->local_count > 0 && current_compiler->locals[current_compiler->local_count - 1].depth > current_compiler->scope_depth)
 		{
-			emit_byte((u8)Op::POP);
+			if (current_compiler->locals[current_compiler->local_count - 1].is_captured)
+			{
+				emit_byte((u8)Op::CLOSE_UPVALUE);
+			}
+			else
+			{
+				emit_byte((u8)Op::POP);
+			}
+
 			current_compiler->local_count--;
 		}
 	}
@@ -985,6 +996,7 @@ namespace CompilerImpl
 		Local* local = &current_compiler->locals[current_compiler->local_count++];
 		local->name = var_name;
 		local->depth = current_compiler->scope_depth;
+		local->is_captured = false;
 	}
 
 	void mark_initialized()

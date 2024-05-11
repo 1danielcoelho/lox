@@ -36,6 +36,7 @@ namespace Lox
 		LOOP,
 		CALL,
 		CLOSURE,
+		CLOSE_UPVALUE,
 		RETURN
 	};
 

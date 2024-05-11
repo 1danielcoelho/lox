@@ -86,6 +86,8 @@ Lox::ObjectUpvalue* Lox::ObjectUpvalue::allocate(Value* slot)
 	vm.objects = upvalue;
 
 	upvalue->location = slot;
+	upvalue->closed = nullptr;
+    upvalue->next_upvalue = nullptr;
 	return upvalue;
 }
 

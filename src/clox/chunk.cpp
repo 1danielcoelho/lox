@@ -173,6 +173,11 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 
 			return offset;
 		}
+		case Lox::Op::CLOSE_UPVALUE:
+		{
+			return print_simple_instruction("CLOSE_UPVALUE", offset);
+			break;
+		}
 		case Lox::Op::RETURN:
 		{
 			return print_simple_instruction("RETURN", offset);

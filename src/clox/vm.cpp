@@ -26,6 +26,7 @@ namespace VMImpl
 
 	void reset_stack()
 	{
+		vm.open_upvalues = nullptr;
 		vm.stack_position = 0;
 		vm.frames_position = 0;
 	}
@@ -169,8 +170,48 @@ namespace VMImpl
 
 	ObjectUpvalue* capture_upvalue(Value* local)
 	{
-		ObjectUpvalue* upvalue = ObjectUpvalue::allocate(local);
-		return upvalue;
+		ObjectUpvalue* prev_upvalue = nullptr;
+		ObjectUpvalue* upvalue = vm.open_upvalues;
+
+		// Since locals and upvalues are in order, if we find an upvalue whose
+		// local slot is below (i.e. earlier) than the one we're looking for, then
+		// we've gone past the slot we're closing over, and there can't be an existing
+		// upvalue for it
+		while (upvalue != nullptr && upvalue->location > local)
+		{
+			prev_upvalue = upvalue;
+			upvalue = upvalue->next_upvalue;
+		}
+
+		if (upvalue != nullptr && upvalue->location == local)
+		{
+			return upvalue;
+		}
+
+		ObjectUpvalue* created_upvalue = ObjectUpvalue::allocate(local);
+		created_upvalue->next_upvalue = upvalue;
+
+		if (prev_upvalue == nullptr)
+		{
+			vm.open_upvalues = created_upvalue;
+		}
+		else
+		{
+			prev_upvalue->next_upvalue = created_upvalue;
+		}
+
+		return created_upvalue;
+	}
+
+	void close_upvalues(Value* last)
+	{
+		while (vm.open_upvalues != nullptr && vm.open_upvalues->location >= last)
+		{
+			ObjectUpvalue* upvalue = vm.open_upvalues;
+			upvalue->closed = *upvalue->location;
+			upvalue->location = &upvalue->closed;
+			vm.open_upvalues = upvalue->next_upvalue;
+		}
 	}
 
 	InterpretResult run()
@@ -471,9 +512,16 @@ namespace VMImpl
 
 					break;
 				}
+				case Op::CLOSE_UPVALUE:
+				{
+					close_upvalues(&vm.stack[vm.stack_position] - 1);
+					pop();
+					break;
+				}
 				case Op::RETURN:
 				{
 					Value result = pop();
+					close_upvalues(frame->slots);
 					vm.frames_position--;
 					if (vm.frames_position == 0)
 					{

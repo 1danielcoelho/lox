@@ -60,6 +60,8 @@ namespace Lox
 	{
 	public:
 		Value* location = nullptr;
+		Value closed;
+		ObjectUpvalue* next_upvalue = nullptr;
 
 	public:
 		static ObjectUpvalue* allocate(Value* slot);
