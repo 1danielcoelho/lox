@@ -80,7 +80,7 @@ Lox::Object* Lox::as_object(const Lox::Value& val)
 
 Lox::ObjectString* Lox::as_string(const Lox::Value& val)
 {
-    Lox::Object* obj = as_object(val);
+	Lox::Object* obj = as_object(val);
 	return dynamic_cast<Lox::ObjectString*>(obj);
 }
 

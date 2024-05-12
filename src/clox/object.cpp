@@ -43,7 +43,11 @@ Lox::ObjectString* Lox::ObjectString::allocate(const Lox::String& string)
 
 	Lox::ObjectString* instance = ObjectImpl::allocate<Lox::ObjectString>(string);
 
+	// Make sure instance is marked as a root if we trigger GC on the insert call below it.
+	// Here we don't *need* to do this because vm.strings is not tracked by GC (although it should...)
+	push(instance);
 	vm.strings.insert({string, instance});
+	pop();
 
 	return instance;
 }

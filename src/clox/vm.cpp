@@ -71,16 +71,6 @@ namespace VMImpl
 		return false;
 	}
 
-	void push(Value value)
-	{
-		vm.stack[vm.stack_position++] = value;
-	}
-
-	Value pop()
-	{
-		return vm.stack[--vm.stack_position];
-	}
-
 	Value peek(i32 distance)
 	{
 		return vm.stack[vm.stack_position - 1 - distance];
@@ -104,10 +94,14 @@ namespace VMImpl
 
 	void concatenate()
 	{
-		ObjectString* b = as_string(pop());
-		ObjectString* a = as_string(pop());
+		// Peek them here because it keeps the values inside the stack while we allocate
+		// a new ObjectString (which can trigger GC)
+		ObjectString* b = as_string(peek(0));
+		ObjectString* a = as_string(peek(1));
 
 		ObjectString* concat = Lox::ObjectString::allocate(a->get_string() + b->get_string());
+		pop();	  // Finally pop 'a' and 'b' off the stack
+		pop();
 		push(concat);
 	}
 
@@ -282,7 +276,8 @@ namespace VMImpl
 				case Op::GET_GLOBAL:
 				{
 					// Variable name is stored as a constant
-					Lox::ObjectString* obj_string = as_string(read_constant(frame));
+					Lox::Value val = read_constant(frame);
+					Lox::ObjectString* obj_string = as_string(val);
 					const Lox::String& variable_name = obj_string->get_string();
 
 					// Check to see if we have a value for that variable
@@ -301,7 +296,8 @@ namespace VMImpl
 				case Op::DEFINE_GLOBAL:
 				{
 					// Variable name is stored as a constant
-					Lox::ObjectString* obj_string = as_string(read_constant(frame));
+					Lox::Value val = read_constant(frame);
+					Lox::ObjectString* obj_string = as_string(val);
 
 					vm.globals[obj_string] = peek(0);	 // Initializer value
 					pop();
@@ -310,7 +306,8 @@ namespace VMImpl
 				case Op::SET_GLOBAL:
 				{
 					// Variable name is stored as a constant
-					Lox::ObjectString* obj_string = as_string(read_constant(frame));
+					Lox::Value val = read_constant(frame);
+					Lox::ObjectString* obj_string = as_string(val);
 					const Lox::String& variable_name = obj_string->get_string();
 
 					// Check to see if we have a variable declared for that name yet
@@ -545,6 +542,16 @@ void Lox::init_VM()
 	reset_stack();
 
 	define_native("clock", clock_native);
+}
+
+void Lox::push(Lox::Value value)
+{
+	vm.stack[vm.stack_position++] = value;
+}
+
+Lox::Value Lox::pop()
+{
+	return vm.stack[--vm.stack_position];
 }
 
 Lox::InterpretResult Lox::interpret(const char* source)

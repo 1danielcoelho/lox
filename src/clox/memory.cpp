@@ -10,11 +10,6 @@ namespace MemoryImpl
 {
 	using namespace Lox;
 
-	void free_object(Lox::Object* obj)
-	{
-		delete obj;
-	}
-
 	void mark_roots()
 	{
 		for (i32 stack_slot = 0; stack_slot < vm.stack_position; ++stack_slot)
@@ -84,7 +79,7 @@ namespace MemoryImpl
 	// Clean object strings from hash tables by properly removing them, before
 	// the generic sweep() just frees the objects themselves
 	template<typename T>
-	void remove_unreferenced_strings(Lox::Map<T, Lox::ObjectString*>& map)
+	void remove_unreferenced_strings(std::unordered_map<T, Lox::ObjectString*>& map)
 	{
 		for (auto iter = map.cbegin(); iter != map.end();)
 		{
@@ -165,6 +160,7 @@ void Lox::collect_garbage()
 
 #if DEBUG_LOG_GC
 	std::cout << "-- gc begin\n";
+	std::size_t before = total_heap_bytes;
 #endif
 
 	mark_roots();
@@ -172,8 +168,11 @@ void Lox::collect_garbage()
 	remove_unreferenced_strings(vm.strings);
 	sweep();
 
+	next_gc = total_heap_bytes * GC_HEAP_GROW_FACTOR;
+
 #if DEBUG_LOG_GC
 	std::cout << "-- gc end\n";
+	std::cout << std::format("   collected {} bytes (from {} to {}), next at {}\n", before - total_heap_bytes, before, total_heap_bytes, next_gc);
 #endif
 }
 
@@ -186,7 +185,7 @@ void Lox::free_objects()
 	{
 		Object* next = object->next;
 
-		free_object(object);
+		object->free();
 		object = next;
 	}
 

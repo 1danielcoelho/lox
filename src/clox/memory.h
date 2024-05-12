@@ -21,6 +21,7 @@ namespace Lox
 	void free_objects();
 
 	inline std::size_t total_heap_bytes = 0;
+	inline std::size_t next_gc = 1024 * 1024;
 
 	// We'll use types like Lox::Vec and Lox::String instead of std::vector and std::string
 	// to track our total memory usage in order to decide when to run the Lox garbage collector.
@@ -47,9 +48,10 @@ namespace Lox
 				throw std::bad_array_new_length();
 			}
 
-#if DEBUG_STRESS_GC
-			collect_garbage();
-#endif
+			if (total_heap_bytes > next_gc || DEBUG_STRESS_GC)
+			{
+				collect_garbage();
+			}
 
 			if (auto p = static_cast<T*>(std::malloc(n * sizeof(T))))
 			{

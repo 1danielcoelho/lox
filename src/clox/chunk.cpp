@@ -1,5 +1,6 @@
 #include "chunk.h"
 #include "object.h"
+#include "vm.h"
 
 #include <cassert>
 #include <format>
@@ -199,7 +200,9 @@ void Lox::Chunk::write_chunk(u8 byte, u32 line)
 
 i32 Lox::Chunk::add_constant(Value value)
 {
+	Lox::push(value);	 // Mark the potential Lox::Object as a GC root before constants reallocates and triggers GC
 	constants.push_back(value);
+	Lox::pop();
 	return (i32)(constants.size() - 1);
 }
 
