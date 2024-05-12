@@ -43,6 +43,16 @@ bool Lox::is_function(const Lox::Value& val)
 	return false;
 }
 
+bool Lox::is_closure(const Lox::Value& val)
+{
+	if (is_object(val))
+	{
+		return as_closure(val);
+	}
+
+	return false;
+}
+
 bool Lox::is_native(const Lox::Value& val)
 {
 	if (is_object(val))
@@ -53,11 +63,21 @@ bool Lox::is_native(const Lox::Value& val)
 	return false;
 }
 
-bool Lox::is_closure(const Lox::Value& val)
+bool Lox::is_class(const Lox::Value& val)
 {
 	if (is_object(val))
 	{
-		return as_closure(val);
+		return as_class(val);
+	}
+
+	return false;
+}
+
+bool Lox::is_instance(const Lox::Value& val)
+{
+	if (is_object(val))
+	{
+		return as_instance(val);
 	}
 
 	return false;
@@ -89,14 +109,24 @@ Lox::ObjectFunction* Lox::as_function(const Lox::Value& val)
 	return dynamic_cast<Lox::ObjectFunction*>(as_object(val));
 }
 
+Lox::ObjectClosure* Lox::as_closure(const Lox::Value& val)
+{
+	return dynamic_cast<Lox::ObjectClosure*>(as_object(val));
+}
+
 Lox::ObjectNativeFunction* Lox::as_native(const Lox::Value& val)
 {
 	return dynamic_cast<Lox::ObjectNativeFunction*>(as_object(val));
 }
 
-Lox::ObjectClosure* Lox::as_closure(const Lox::Value& val)
+Lox::ObjectClass* Lox::as_class(const Lox::Value& val)
 {
-	return dynamic_cast<Lox::ObjectClosure*>(as_object(val));
+	return dynamic_cast<Lox::ObjectClass*>(as_object(val));
+}
+
+Lox::ObjectInstance* Lox::as_instance(const Lox::Value& val)
+{
+	return dynamic_cast<Lox::ObjectInstance*>(as_object(val));
 }
 
 bool Lox::values_equal(const Lox::Value& left_val, const Lox::Value& right_val)

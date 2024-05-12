@@ -1,18 +1,6 @@
-var globalSet;
-var globalGet;
+class Pair {}
 
-var test = "global_str";
-
-fun main() {
-  var a = "initial";
-
-  fun set() { a = "updated"; }
-  fun get() { print a; }
-
-  globalSet = set;
-  globalGet = get;
-}
-
-main();
-globalSet();
-globalGet();
+var pair = Pair();
+pair.first = 1;
+pair.second = 2;
+print pair.first + pair.second; // 3.

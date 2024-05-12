@@ -29,11 +29,13 @@ namespace Lox
 
 	using String = std::basic_string<char, std::char_traits<char>, Lox::TrackingAllocator<char>>;
 
-	template<typename TKey, typename TVal>
-	using Map = std::unordered_map<	   //
-		TKey,
-		TVal,
-		std::hash<TKey>,
-		std::equal_to<TKey>,
-		Lox::TrackingAllocator<std::pair<const TKey, TVal>>>;
+	// Not really used because we can seem to iterate these maps while
+	// one of their internal nodes is being allocated, which we need to for GC
+	// template<typename TKey, typename TVal>
+	// using Map = std::unordered_map<	   //
+	// 	TKey,
+	// 	TVal,
+	// 	std::hash<TKey>,
+	// 	std::equal_to<TKey>,
+	// 	Lox::TrackingAllocator<std::pair<const TKey, TVal>>>;
 }

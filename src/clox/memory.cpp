@@ -63,6 +63,19 @@ namespace MemoryImpl
 				mark_object(closure_upvalue);
 			}
 		}
+		else if (ObjectClass* klass = dynamic_cast<ObjectClass*>(object))
+		{
+			mark_object(klass->name);
+		}
+		else if (ObjectInstance* instance = dynamic_cast<ObjectInstance*>(object))
+		{
+			mark_object(instance->klass);
+			for (const auto& [str, val] : instance->fields)
+			{
+				mark_object(str);
+				mark_value(val);
+			}
+		}
 	}
 
 	void trace_references()

@@ -95,6 +95,7 @@ namespace CompilerImpl
 	void begin_scope();
 	void end_scope();
 	u8 parse_variable(const char* error_message);
+	void declare_variable();
 	void define_variable(u8 global_index);
 
 	void init_compiler(Compiler* compiler, FunctionType type)
@@ -514,6 +515,22 @@ namespace CompilerImpl
 		emit_bytes((u8)Op::CALL, arg_count);
 	}
 
+	void dot(bool can_assign)
+	{
+		consume(TokenType::IDENTIFIER, "Expected property name after '.'");
+		u8 prop_name_index = identifier_constant(parser.previous);
+
+		if (can_assign && match(TokenType::EQUAL))
+		{
+			expression();
+			emit_bytes((u8)Op::SET_PROPERTY, prop_name_index);
+		}
+		else
+		{
+			emit_bytes((u8)Op::GET_PROPERTY, prop_name_index);
+		}
+	}
+
 	void grouping([[maybe_unused]] bool can_assign)
 	{
 		expression();
@@ -664,7 +681,7 @@ namespace CompilerImpl
 		result[(u8)TokenType::LEFT_BRACE]    = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::RIGHT_BRACE]   = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::COMMA]         = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::DOT]           = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::DOT]           = {nullptr,  dot,  	Precedence::CALL};
 		result[(u8)TokenType::MINUS]         = {unary,    binary,   Precedence::TERM};
 		result[(u8)TokenType::PLUS]          = {nullptr,  binary,   Precedence::TERM};
 		result[(u8)TokenType::SEMICOLON]     = {nullptr,  nullptr,  Precedence::NONE};
@@ -928,6 +945,19 @@ namespace CompilerImpl
 		}
 	}
 
+	void class_declaration()
+	{
+		consume(TokenType::IDENTIFIER, "Expected class name");
+		u8 name_index = identifier_constant(parser.previous);
+		declare_variable();
+
+		emit_bytes((u8)Op::CLASS, name_index);
+		define_variable(name_index);
+
+		consume(TokenType::LEFT_BRACE, "Expected '{' before class body");
+		consume(TokenType::RIGHT_BRACE, "Expected '}' after class body");
+	}
+
 	void begin_scope()
 	{
 		current_compiler->scope_depth++;
@@ -1116,7 +1146,11 @@ namespace CompilerImpl
 
 	void declaration()
 	{
-		if (match(TokenType::FUN))
+		if (match(TokenType::CLASS))
+		{
+			class_declaration();
+		}
+		else if (match(TokenType::FUN))
 		{
 			fun_declaration();
 		}

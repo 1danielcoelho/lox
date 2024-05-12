@@ -188,3 +188,55 @@ Lox::String Lox::ObjectNativeFunction::to_string() const
 {
 	return "<native fn>";
 }
+
+Lox::ObjectClass* Lox::ObjectClass::allocate(Lox::ObjectString* in_name)
+{
+	Lox::ObjectClass* cls = ObjectImpl::allocate<Lox::ObjectClass>(in_name);
+	return cls;
+}
+
+void Lox::ObjectClass::free(ObjectClass* instance)
+{
+	ObjectImpl::free<Lox::ObjectClass>(instance);
+}
+
+Lox::ObjectClass::ObjectClass(ObjectString* in_name)
+	: name(in_name)
+{
+}
+
+void Lox::ObjectClass::free()
+{
+	Lox::ObjectClass::free(this);
+}
+
+Lox::String Lox::ObjectClass::to_string() const
+{
+	return Lox::String{std::format("class {}", name->get_string())};
+}
+
+Lox::ObjectInstance* Lox::ObjectInstance::allocate(ObjectClass* klass)
+{
+	Lox::ObjectInstance* instance = ObjectImpl::allocate<Lox::ObjectInstance>(klass);
+	return instance;
+}
+
+void Lox::ObjectInstance::free(ObjectInstance* instance)
+{
+	ObjectImpl::free<Lox::ObjectInstance>(instance);
+}
+
+Lox::ObjectInstance::ObjectInstance(Lox::ObjectClass* in_klass)
+	: klass(in_klass)
+{
+}
+
+void Lox::ObjectInstance::free()
+{
+	Lox::ObjectInstance::free(this);
+}
+
+Lox::String Lox::ObjectInstance::to_string() const
+{
+	return Lox::String{std::format("{} instance", klass->to_string())};
+}

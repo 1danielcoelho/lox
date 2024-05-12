@@ -21,6 +21,8 @@ namespace Lox
 		SET_GLOBAL,
 		GET_UPVALUE,
 		SET_UPVALUE,
+		GET_PROPERTY,
+		SET_PROPERTY,
 		EQUAL,
 		GREATER,
 		LESS,
@@ -37,7 +39,8 @@ namespace Lox
 		CALL,
 		CLOSURE,
 		CLOSE_UPVALUE,
-		RETURN
+		RETURN,
+		CLASS
 	};
 
 	class Chunk

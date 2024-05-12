@@ -13,6 +13,8 @@ namespace Lox
 	class ObjectFunction;
 	class ObjectClosure;
 	class ObjectNativeFunction;
+	class ObjectClass;
+	class ObjectInstance;
 
 	using Value = std::variant<bool, nullptr_t, f64, Object*>;
 
@@ -22,16 +24,20 @@ namespace Lox
 	bool is_object(const Lox::Value& val);
 	bool is_string(const Lox::Value& val);
 	bool is_function(const Lox::Value& val);
-	bool is_native(const Lox::Value& val);
 	bool is_closure(const Lox::Value& val);
+	bool is_native(const Lox::Value& val);
+	bool is_class(const Lox::Value& val);
+	bool is_instance(const Lox::Value& val);
 
 	f64 as_number(const Lox::Value& val);
 	bool as_bool(const Lox::Value& val);
 	Object* as_object(const Lox::Value& val);
 	ObjectString* as_string(const Lox::Value& val);
 	ObjectFunction* as_function(const Lox::Value& val);
-	ObjectNativeFunction* as_native(const Lox::Value& val);
 	ObjectClosure* as_closure(const Lox::Value& val);
+	ObjectNativeFunction* as_native(const Lox::Value& val);
+	ObjectClass* as_class(const Lox::Value& val);
+	ObjectInstance* as_instance(const Lox::Value& val);
 
 	bool values_equal(const Value& left, const Value& right);
 	Lox::String to_string(const Value& value);

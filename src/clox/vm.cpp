@@ -154,6 +154,11 @@ namespace VMImpl
 				push(result);
 				return true;
 			}
+			else if (ObjectClass* klass = dynamic_cast<ObjectClass*>(callee_object))
+			{
+				vm.stack[vm.stack_position - arg_count - 1] = ObjectInstance::allocate(klass);
+				return true;
+			}
 		}
 
 		runtime_error("Can only call functions and classes");
@@ -340,6 +345,44 @@ namespace VMImpl
 					*frame->closure->upvalues[slot]->location = peek(0);
 					break;
 				}
+				case Op::GET_PROPERTY:
+				{
+					if (!is_instance(peek(0)))
+					{
+						runtime_error("Only instances have properties");
+						return InterpretResult::RUNTIME_ERROR;
+					}
+
+					Lox::ObjectInstance* instance = as_instance(peek(0));
+					Lox::ObjectString* prop_name = as_string(read_constant(frame));
+
+					auto iter = instance->fields.find(prop_name);
+					if (iter != instance->fields.end())
+					{
+						pop();	  // instance
+						push(iter->second);
+						break;
+					}
+
+					runtime_error(std::format("Undefined property '{}'", prop_name->get_string()).c_str());
+					return InterpretResult::RUNTIME_ERROR;
+				}
+				case Op::SET_PROPERTY:
+				{
+					if (!is_instance(peek(1)))
+					{
+						runtime_error("Only instances have fields");
+						return InterpretResult::RUNTIME_ERROR;
+					}
+
+					Lox::ObjectInstance* instance = as_instance(peek(1));
+					Lox::ObjectString* prop_name = as_string(read_constant(frame));
+					instance->fields[prop_name] = peek(0);
+					Value value = pop();
+					pop();
+					push(value);
+					break;
+				}
 				case Op::EQUAL:
 				{
 					Value b = pop();
@@ -524,6 +567,14 @@ namespace VMImpl
 					vm.stack_position = (i32)(frame->slots - vm.stack.data());
 					push(result);
 					frame = &vm.frames[vm.frames_position - 1];
+					break;
+				}
+				case Op::CLASS:
+				{
+					Lox::Value val = read_constant(frame);
+					Lox::ObjectString* name = as_string(val);
+					Lox::ObjectClass* klass = Lox::ObjectClass::allocate(name);
+					push(klass);
 					break;
 				}
 				default:

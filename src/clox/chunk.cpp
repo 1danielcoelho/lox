@@ -88,6 +88,16 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			return print_byte_instruction("SET_UPVALUE", offset);
 			break;
 		}
+		case Lox::Op::GET_PROPERTY:
+		{
+			return print_constant_instruction("GET_PROPERTY", offset);
+			break;
+		}
+		case Lox::Op::SET_PROPERTY:
+		{
+			return print_constant_instruction("SET_PROPERTY", offset);
+			break;
+		}
 		case Lox::Op::EQUAL:
 		{
 			return print_simple_instruction("EQUAL", offset);
@@ -182,6 +192,11 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 		case Lox::Op::RETURN:
 		{
 			return print_simple_instruction("RETURN", offset);
+			break;
+		}
+		case Lox::Op::CLASS:
+		{
+			return print_constant_instruction("CLASS", offset);
 			break;
 		}
 		default:

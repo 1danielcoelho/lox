@@ -103,4 +103,35 @@ namespace Lox
 
 		virtual Lox::String to_string() const override;
 	};
+
+	class ObjectClass : public Object
+	{
+	public:
+		ObjectString* name;
+
+	public:
+		static ObjectClass* allocate(ObjectString* name);
+		static void free(ObjectClass* instance);
+
+		ObjectClass(ObjectString* name);
+		virtual void free() override;
+
+		virtual Lox::String to_string() const override;
+	};
+
+	class ObjectInstance : public Object
+	{
+	public:
+		ObjectClass* klass;
+		std::unordered_map<Lox::ObjectString*, Lox::Value> fields;
+
+	public:
+		static ObjectInstance* allocate(ObjectClass* klass);
+		static void free(ObjectInstance* instance);
+
+		ObjectInstance(ObjectClass* klass);
+		virtual void free() override;
+
+		virtual Lox::String to_string() const override;
+	};
 }	 // namespace Lox
