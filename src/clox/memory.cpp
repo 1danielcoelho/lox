@@ -24,6 +24,7 @@ namespace MemoryImpl
 
 		for (const auto& [str, val] : vm.globals)
 		{
+			mark_object(str);
 			mark_value(val);
 		}
 
@@ -61,9 +62,9 @@ namespace MemoryImpl
 		else if (ObjectClosure* closure = dynamic_cast<ObjectClosure*>(object))
 		{
 			mark_object(closure->function);
-			for (ObjectUpvalue* upvalue : closure->upvalues)
+			for (ObjectUpvalue* closure_upvalue : closure->upvalues)
 			{
-				mark_object(upvalue);
+				mark_object(closure_upvalue);
 			}
 		}
 	}

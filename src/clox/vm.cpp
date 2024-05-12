@@ -117,9 +117,7 @@ namespace VMImpl
 		push(ObjectNativeFunction::allocate(function));
 
 		// TODO: Why not relative to current stack pos?
-		// TODO: This is kind of silly: Given how I'm using Lox::Map<Lox::String,...> I could just construct
-		// a new Lox::String here? It seems to be a GC thing
-		vm.globals[as_string(vm.stack[0])->get_string()] = vm.stack[1];
+		vm.globals[as_string(vm.stack[0])] = vm.stack[1];
 
 		pop();
 		pop();
@@ -284,12 +282,11 @@ namespace VMImpl
 				case Op::GET_GLOBAL:
 				{
 					// Variable name is stored as a constant
-					Value constant = read_constant(frame);
-					Lox::ObjectString* obj_string = as_string(constant);
+					Lox::ObjectString* obj_string = as_string(read_constant(frame));
 					const Lox::String& variable_name = obj_string->get_string();
 
 					// Check to see if we have a value for that variable
-					auto iter = vm.globals.find(variable_name);
+					auto iter = vm.globals.find(obj_string);
 					if (iter == vm.globals.end())
 					{
 						Lox::String error_message{std::format("Undefined variable '{}'", variable_name)};
@@ -304,25 +301,23 @@ namespace VMImpl
 				case Op::DEFINE_GLOBAL:
 				{
 					// Variable name is stored as a constant
-					Value constant = read_constant(frame);
-					Lox::ObjectString* obj_string = as_string(constant);
+					Lox::ObjectString* obj_string = as_string(read_constant(frame));
 
-					vm.globals[obj_string->get_string()] = peek(0);	   // Initializer value
+					vm.globals[obj_string] = peek(0);	 // Initializer value
 					pop();
 					break;
 				}
 				case Op::SET_GLOBAL:
 				{
 					// Variable name is stored as a constant
-					Value constant = read_constant(frame);
-					Lox::ObjectString* obj_string = as_string(constant);
+					Lox::ObjectString* obj_string = as_string(read_constant(frame));
 					const Lox::String& variable_name = obj_string->get_string();
 
 					// Check to see if we have a variable declared for that name yet
-					auto iter = vm.globals.find(variable_name);
+					auto iter = vm.globals.find(obj_string);
 					if (iter != vm.globals.end())
 					{
-						vm.globals[variable_name] = peek(0);
+						vm.globals[obj_string] = peek(0);
 					}
 					else
 					{
