@@ -40,6 +40,9 @@ namespace Lox
 		Lox::Object* objects = nullptr;
 
 		// Where we collect interned strings
+		// The book basically has a hash set here. By using the underlying string as key
+		// we can kind of get the same behavior without having to implement std::hash for the pointer type itself.
+		// We'll have an extra copy of the Lox::String I guess, but I don't particularly care about that yet
 		Lox::Map<Lox::String, Lox::ObjectString*> strings;
 
 		ObjectUpvalue* open_upvalues = nullptr;

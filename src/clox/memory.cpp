@@ -1,4 +1,5 @@
 #include "memory.h"
+#include "common.h"
 #include "compiler.h"
 #include "object.h"
 #include "vm.h"
@@ -80,6 +81,25 @@ namespace MemoryImpl
 		}
 	}
 
+	// Clean object strings from hash tables by properly removing them, before
+	// the generic sweep() just frees the objects themselves
+	template<typename T>
+	void remove_unreferenced_strings(Lox::Map<T, Lox::ObjectString*>& map)
+	{
+		for (auto iter = map.cbegin(); iter != map.end();)
+		{
+			const Lox::ObjectString* s = iter->second;
+			if (s != nullptr && !s->is_marked)
+			{
+				iter = map.erase(iter);
+			}
+			else
+			{
+				++iter;
+			}
+		}
+	}
+
 	void sweep()
 	{
 		Object* previous = nullptr;
@@ -149,6 +169,7 @@ void Lox::collect_garbage()
 
 	mark_roots();
 	trace_references();
+	remove_unreferenced_strings(vm.strings);
 	sweep();
 
 #if DEBUG_LOG_GC
