@@ -167,6 +167,10 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 		{
 			return print_byte_instruction("CALL", offset);
 		}
+		case Lox::Op::INVOKE:
+		{
+			return print_invoke_instruction("INVOKE", offset);
+		}
 		case Lox::Op::CLOSURE:
 		{
 			offset++;
@@ -254,5 +258,13 @@ i32 Lox::Chunk::print_jump_instruction(const char* op_name, i32 sign, i32 offset
 	jump |= code[offset + 2];
 
 	std::cout << std::format("{} {} -> {}", op_name, offset, offset + 3 + sign * jump) << std::endl;
+	return offset + 3;
+}
+
+i32 Lox::Chunk::print_invoke_instruction(const char* op_name, i32 offset) const
+{
+	u8 constant = code[offset + 1];
+	u8 arg_count = code[offset + 2];
+	std::cout << std::format("{} ({} args) {} '{}'\n", op_name, arg_count, constant, Lox::to_string(constants[constant]));
 	return offset + 3;
 }

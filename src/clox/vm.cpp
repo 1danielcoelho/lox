@@ -184,6 +184,40 @@ namespace VMImpl
 		return false;
 	}
 
+	bool invoke_from_class(ObjectClass* klass, ObjectString* name, i32 arg_count)
+	{
+		auto iter = klass->methods.find(name);
+		if (iter == klass->methods.end())
+		{
+			runtime_error(std::format("Undefined property {}", name->get_string()).c_str());
+			return false;
+		}
+
+		return call(as_closure(iter->second), arg_count);
+	}
+
+	bool invoke(ObjectString* name, i32 arg_count)
+	{
+		Value receiver = peek(arg_count);
+
+		if (!is_instance(receiver))
+		{
+			runtime_error("Only instances have methods");
+			return false;
+		}
+
+		ObjectInstance* instance = as_instance(receiver);
+
+		auto iter = instance->fields.find(name);
+		if (iter != instance->fields.end())
+		{
+			vm.stack[vm.stack_position - arg_count - 1] = iter->second;
+			return call_value(iter->second, arg_count);
+		}
+
+		return invoke_from_class(instance->klass, name, arg_count);
+	}
+
 	bool bind_method(ObjectClass* klass, ObjectString* name)
 	{
 		auto iter = klass->methods.find(name);
@@ -565,6 +599,21 @@ namespace VMImpl
 						return InterpretResult::RUNTIME_ERROR;
 					}
 					// call_value created a new CallFrame
+					frame = &vm.frames[vm.frames_position - 1];
+					break;
+				}
+				case Op::INVOKE:
+				{
+					ObjectString* method_name = as_string(read_constant(frame));
+					i32 arg_count = read_byte(frame);
+
+					if (!invoke(method_name, arg_count))
+					{
+						return InterpretResult::RUNTIME_ERROR;
+					}
+
+					// If the method call succeeded there is a new call frame on the stack,
+					// so we need to refresh 'frame'
 					frame = &vm.frames[vm.frames_position - 1];
 					break;
 				}

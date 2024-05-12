@@ -550,6 +550,12 @@ namespace CompilerImpl
 			expression();
 			emit_bytes((u8)Op::SET_PROPERTY, prop_name_index);
 		}
+		else if (match(TokenType::LEFT_PAREN))
+		{
+			u8 arg_count = argument_list();
+			emit_bytes((u8)Op::INVOKE, prop_name_index);
+			emit_byte(arg_count);
+		}
 		else
 		{
 			emit_bytes((u8)Op::GET_PROPERTY, prop_name_index);
