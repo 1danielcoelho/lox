@@ -23,7 +23,7 @@ namespace Lox
 	};
 }
 
-std::string read_file(const char* path)
+Lox::String read_file(const char* path)
 {
 	fs::path fs_path{path};
 	if (!fs::is_regular_file(fs_path))
@@ -42,7 +42,7 @@ std::string read_file(const char* path)
 	std::stringstream sstream;
 	sstream << file_stream.rdbuf();
 
-	std::string file_contents;
+	Lox::String file_contents;
 	file_contents = sstream.str();
 
 	file_stream.close();
@@ -52,7 +52,7 @@ std::string read_file(const char* path)
 
 void run_file(const char* path)
 {
-	std::string source = read_file(path);
+	Lox::String source = read_file(path);
 	Lox::InterpretResult result = Lox::interpret(source.c_str());
 
 	if (result == Lox::InterpretResult::COMPILE_ERROR)
@@ -68,7 +68,7 @@ void run_file(const char* path)
 
 void repl()
 {
-	std::string input;
+	Lox::String input;
 	while (true)
 	{
 		std::cout << "> ";

@@ -23,7 +23,7 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 
 	Lox::Op instruction = static_cast<Lox::Op>(code[offset]);
 
-	std::string line_number_str = (offset > 0 && lines[offset] == lines[offset - 1]) ? "    " : std::to_string(lines[offset]);
+	Lox::String line_number_str{(offset > 0 && lines[offset] == lines[offset - 1]) ? "    " : std::to_string(lines[offset])};
 	std::cout << std::setw(4) << line_number_str << " ";
 	switch (instruction)
 	{

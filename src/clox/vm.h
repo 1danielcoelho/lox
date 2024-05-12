@@ -1,6 +1,7 @@
 #pragma once
 
 #include "chunk.h"
+#include "common.h"
 
 #include <array>
 #include <string>
@@ -39,12 +40,12 @@ namespace Lox
 		Lox::Object* objects = nullptr;
 
 		// Where we collect interned strings
-		std::unordered_map<std::string, Lox::ObjectString*> strings;
+		Lox::Map<Lox::String, Lox::ObjectString*> strings;
 
 		ObjectUpvalue* open_upvalues = nullptr;
 
 		// Global variables stored by hash of the name string
-		std::unordered_map<std::string, Lox::Value> globals;
+		Lox::Map<Lox::String, Lox::Value> globals;
 	};
 
 	extern VM vm;

@@ -10,6 +10,10 @@ namespace MemoryImpl
 	}
 }
 
+void Lox::collect_garbage()
+{
+}
+
 void Lox::free_objects()
 {
 	using namespace MemoryImpl;

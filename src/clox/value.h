@@ -37,5 +37,5 @@ namespace Lox
 	ObjectClosure* as_closure(const Lox::Value& val);
 
 	bool values_equal(const Value& left, const Value& right);
-	std::string to_string(const Value& value);
-}
+	Lox::String to_string(const Value& value);
+}	 // namespace Lox

@@ -1,14 +1,40 @@
 #include "object.h"
+#include "memory.h"
 #include "vm.h"
 
+#include <cassert>
 #include <format>
 
-std::string Lox::Object::to_string() const
+namespace ObjectImpl
+{
+	static Lox::TrackingAllocator<u8> allocator;
+
+	template<typename T, typename... Args>
+	T* allocate(Args&&... args)
+	{
+		u8* buf = allocator.allocate(sizeof(T));
+		T* object = new (buf) T(std::forward<Args>(args)...);
+
+		// TODO: Do we still need these?
+		object->next = Lox::vm.objects;
+		Lox::vm.objects = object;
+
+		return object;
+	}
+
+	template<typename T>
+	void free(void* ptr)
+	{
+		allocator.deallocate(static_cast<unsigned char*>(ptr), sizeof(T));
+	}
+}
+
+Lox::String Lox::Object::to_string() const
 {
 	return "";
 }
 
-Lox::ObjectString* Lox::ObjectString::allocate(const std::string& string)
+Lox::ObjectString* Lox::ObjectString::allocate(const Lox::String& string)
 {
 	auto iter = vm.strings.find(string);
 	if (iter != vm.strings.end())
@@ -16,14 +42,21 @@ Lox::ObjectString* Lox::ObjectString::allocate(const std::string& string)
 		return iter->second;
 	}
 
-	// TODO: Move to base class?
-	Lox::ObjectString* result = new Lox::ObjectString(string);
-	result->next = vm.objects;
-	vm.objects = result;
+	Lox::ObjectString* instance = ObjectImpl::allocate<Lox::ObjectString>(string);
 
-	vm.strings.insert({string, result});
+	vm.strings.insert({string, instance});
 
-	return result;
+	return instance;
+}
+
+void Lox::ObjectString::free(ObjectString* instance)
+{
+	ObjectImpl::free<Lox::ObjectString>(instance);
+}
+
+Lox::ObjectString::ObjectString(const Lox::String& in_string)
+	: string(in_string)
+{
 }
 
 Lox::ObjectString::~ObjectString()
@@ -31,82 +64,99 @@ Lox::ObjectString::~ObjectString()
 	vm.strings.erase(string);
 }
 
-std::string Lox::ObjectString::to_string() const
+Lox::String Lox::ObjectString::to_string() const
 {
 	return string;
 }
 
-const std::string& Lox::ObjectString::get_string() const
+const Lox::String& Lox::ObjectString::get_string() const
 {
 	return string;
-}
-
-Lox::ObjectString::ObjectString(const std::string& in_string)
-	: string(in_string)
-{
 }
 
 Lox::ObjectFunction* Lox::ObjectFunction::allocate()
 {
-	Lox::ObjectFunction* function = new Lox::ObjectFunction();
-	function->next = vm.objects;
-	vm.objects = function;
-
-	function->arity = 0;
-	function->upvalue_count = 0;
-	function->name = nullptr;
-	return function;
+	Lox::ObjectFunction* instance = ObjectImpl::allocate<Lox::ObjectFunction>();
+	instance->arity = 0;
+	instance->upvalue_count = 0;
+	instance->name = nullptr;
+	return instance;
 }
 
-std::string Lox::ObjectFunction::to_string() const
+void Lox::ObjectFunction::free(ObjectFunction* instance)
 {
-	return name ? std::format("<fn {}>", name->get_string()) : "<script>";
+	ObjectImpl::free<Lox::ObjectFunction>(instance);
 }
 
-Lox::ObjectClosure* Lox::ObjectClosure::allocate(ObjectFunction* function)
+Lox::String Lox::ObjectFunction::to_string() const
 {
-	Lox::ObjectClosure* closure = new Lox::ObjectClosure();
-	closure->next = vm.objects;
-	vm.objects = closure;
-
-	closure->function = function;
-	closure->upvalues.reserve(function->upvalue_count);
-	return closure;
-}
-
-std::string Lox::ObjectClosure::to_string() const
-{
-	return function->to_string();
+	return name ? Lox::String{std::format("<fn {}>", name->get_string())} : "<script>";
 }
 
 Lox::ObjectUpvalue* Lox::ObjectUpvalue::allocate(Value* slot)
 {
-	Lox::ObjectUpvalue* upvalue = new Lox::ObjectUpvalue();
-	upvalue->next = vm.objects;
-	vm.objects = upvalue;
-
-	upvalue->location = slot;
-	upvalue->closed = nullptr;
-    upvalue->next_upvalue = nullptr;
-	return upvalue;
+	Lox::ObjectUpvalue* instance = ObjectImpl::allocate<Lox::ObjectUpvalue>(slot);
+	instance->location = slot;
+	instance->closed = nullptr;
+	instance->next_upvalue = nullptr;
+	return instance;
 }
 
-std::string Lox::ObjectUpvalue::to_string() const
+void Lox::ObjectUpvalue::free(ObjectUpvalue* instance)
+{
+	ObjectImpl::free<Lox::ObjectUpvalue>(instance);
+}
+
+Lox::ObjectUpvalue::ObjectUpvalue(Value* in_slot)
+	: location(in_slot)
+{
+}
+
+Lox::String Lox::ObjectUpvalue::to_string() const
 {
 	return "upvalue";
 }
 
-Lox::ObjectNativeFunction* Lox::ObjectNativeFunction::allocate(NativeFn in_function)
+Lox::ObjectClosure* Lox::ObjectClosure::allocate(ObjectFunction* function)
 {
-	Lox::ObjectNativeFunction* function_obj = new Lox::ObjectNativeFunction();
-	function_obj->next = vm.objects;
-	vm.objects = function_obj;
-
-	function_obj->function = in_function;
-	return function_obj;
+	Lox::ObjectClosure* instance = ObjectImpl::allocate<Lox::ObjectClosure>(function);
+	instance->function = function;
+	instance->upvalues.reserve(function->upvalue_count);
+	return instance;
 }
 
-std::string Lox::ObjectNativeFunction::to_string() const
+void Lox::ObjectClosure::free(ObjectClosure* instance)
+{
+	ObjectImpl::free<Lox::ObjectClosure>(instance);
+}
+
+Lox::ObjectClosure::ObjectClosure(ObjectFunction* in_function)
+	: function(in_function)
+{
+}
+
+Lox::String Lox::ObjectClosure::to_string() const
+{
+	return function->to_string();
+}
+
+Lox::ObjectNativeFunction* Lox::ObjectNativeFunction::allocate(NativeFn in_function)
+{
+	Lox::ObjectNativeFunction* instance = ObjectImpl::allocate<Lox::ObjectNativeFunction>(in_function);
+	return instance;
+}
+
+void Lox::ObjectNativeFunction::free(ObjectNativeFunction* instance)
+{
+	ObjectImpl::free<Lox::ObjectNativeFunction>(instance);
+}
+
+Lox::ObjectNativeFunction::ObjectNativeFunction(NativeFn in_function)
+	: function(in_function)
+{
+}
+
+Lox::String Lox::ObjectNativeFunction::to_string() const
 {
 	return "<native fn>";
 }

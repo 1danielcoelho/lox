@@ -108,7 +108,7 @@ namespace CompilerImpl
 		if (type != FunctionType::SCRIPT)
 		{
 			current_compiler->function->name = Lox::ObjectString::allocate(	   //
-				std::string{parser.previous.start, (size_t)parser.previous.length}
+				Lox::String{parser.previous.start, (size_t)parser.previous.length}
 			);
 		}
 
@@ -219,7 +219,7 @@ namespace CompilerImpl
 
 	u8 identifier_constant(const Token& name)
 	{
-		Lox::ObjectString* new_str = Lox::ObjectString::allocate(std::string{name.start, (size_t)name.length});
+		Lox::ObjectString* new_str = Lox::ObjectString::allocate(Lox::String{name.start, (size_t)name.length});
 		return make_constant(new_str);
 	}
 
@@ -551,7 +551,7 @@ namespace CompilerImpl
 	void string([[maybe_unused]] bool can_assign)
 	{
 		Lox::ObjectString* new_str = Lox::ObjectString::allocate(	 //
-			std::string{parser.previous.start + 1, (size_t)(parser.previous.length - 2)}
+			Lox::String{parser.previous.start + 1, (size_t)(parser.previous.length - 2)}
 		);
 
 		emit_constant(new_str);

@@ -43,9 +43,9 @@ namespace Lox
 	class Chunk
 	{
 	public:
-		std::vector<u8> code;
-		std::vector<u32> lines;
-		std::vector<Value> constants;
+		Lox::Vec<u8> code;
+		Lox::Vec<u32> lines;
+		Lox::Vec<Value> constants;
 
 	public:
 		void disassemble_chunk(const char* chunk_name) const;

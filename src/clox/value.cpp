@@ -80,7 +80,8 @@ Lox::Object* Lox::as_object(const Lox::Value& val)
 
 Lox::ObjectString* Lox::as_string(const Lox::Value& val)
 {
-	return dynamic_cast<Lox::ObjectString*>(as_object(val));
+    Lox::Object* obj = as_object(val);
+	return dynamic_cast<Lox::ObjectString*>(obj);
 }
 
 Lox::ObjectFunction* Lox::as_function(const Lox::Value& val)
@@ -117,27 +118,27 @@ bool Lox::values_equal(const Lox::Value& left_val, const Lox::Value& right_val)
 	}
 }
 
-std::string Lox::to_string(const Lox::Value& variant)
+Lox::String Lox::to_string(const Lox::Value& variant)
 {
 	struct Visitor
 	{
-		std::string operator()(const std::string& s)
+		Lox::String operator()(const Lox::String& s)
 		{
 			return s;
 		}
-		std::string operator()(double d)
+		Lox::String operator()(double d)
 		{
-			return std::to_string(d);
+			return Lox::String{std::to_string(d)};
 		}
-		std::string operator()(bool b)
+		Lox::String operator()(bool b)
 		{
 			return b ? "true" : "false";
 		}
-		std::string operator()([[maybe_unused]] std::nullptr_t n)
+		Lox::String operator()([[maybe_unused]] std::nullptr_t n)
 		{
 			return "nil";
 		}
-		std::string operator()([[maybe_unused]] Object* o)
+		Lox::String operator()([[maybe_unused]] Object* o)
 		{
 			return o->to_string();
 		}

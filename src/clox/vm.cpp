@@ -117,8 +117,8 @@ namespace VMImpl
 		push(ObjectNativeFunction::allocate(function));
 
 		// TODO: Why not relative to current stack pos?
-		// TODO: This is kind of silly: Given how I'm using std::unordered_map<std::string,...> I could just construct
-		// a new std::string here? It seems to be a GC thing
+		// TODO: This is kind of silly: Given how I'm using Lox::Map<Lox::String,...> I could just construct
+		// a new Lox::String here? It seems to be a GC thing
 		vm.globals[as_string(vm.stack[0])->get_string()] = vm.stack[1];
 
 		pop();
@@ -286,13 +286,13 @@ namespace VMImpl
 					// Variable name is stored as a constant
 					Value constant = read_constant(frame);
 					Lox::ObjectString* obj_string = as_string(constant);
-					const std::string& variable_name = obj_string->get_string();
+					const Lox::String& variable_name = obj_string->get_string();
 
 					// Check to see if we have a value for that variable
 					auto iter = vm.globals.find(variable_name);
 					if (iter == vm.globals.end())
 					{
-						std::string error_message = std::format("Undefined variable '{}'", variable_name);
+						Lox::String error_message{std::format("Undefined variable '{}'", variable_name)};
 						runtime_error(error_message.c_str());
 						return Lox::InterpretResult::RUNTIME_ERROR;
 					}
@@ -316,7 +316,7 @@ namespace VMImpl
 					// Variable name is stored as a constant
 					Value constant = read_constant(frame);
 					Lox::ObjectString* obj_string = as_string(constant);
-					const std::string& variable_name = obj_string->get_string();
+					const Lox::String& variable_name = obj_string->get_string();
 
 					// Check to see if we have a variable declared for that name yet
 					auto iter = vm.globals.find(variable_name);
@@ -326,7 +326,7 @@ namespace VMImpl
 					}
 					else
 					{
-						std::string error_message = std::format("Undefined variable '{}'", variable_name);
+						Lox::String error_message{std::format("Undefined variable '{}'", variable_name)};
 						runtime_error(error_message.c_str());
 						return Lox::InterpretResult::RUNTIME_ERROR;
 					}
