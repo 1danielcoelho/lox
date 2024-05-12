@@ -108,6 +108,7 @@ namespace Lox
 	{
 	public:
 		ObjectString* name;
+		std::unordered_map<Lox::ObjectString*, Lox::Value> methods;
 
 	public:
 		static ObjectClass* allocate(ObjectString* name);
@@ -130,6 +131,22 @@ namespace Lox
 		static void free(ObjectInstance* instance);
 
 		ObjectInstance(ObjectClass* klass);
+		virtual void free() override;
+
+		virtual Lox::String to_string() const override;
+	};
+
+	class ObjectBoundMethod : public Object
+	{
+	public:
+		Value receiver;
+		ObjectClosure* method;
+
+	public:
+		static ObjectBoundMethod* allocate(Value receiver, ObjectClosure* method);
+		static void free(ObjectBoundMethod* instance);
+
+		ObjectBoundMethod(Value receiver, ObjectClosure* method);
 		virtual void free() override;
 
 		virtual Lox::String to_string() const override;

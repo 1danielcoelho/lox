@@ -157,12 +157,46 @@ namespace VMImpl
 			else if (ObjectClass* klass = dynamic_cast<ObjectClass*>(callee_object))
 			{
 				vm.stack[vm.stack_position - arg_count - 1] = ObjectInstance::allocate(klass);
+
+				// Call initializer if it's defined
+				auto iter = klass->methods.find(vm.init_string);
+				if (iter != klass->methods.end())
+				{
+					return call(as_closure(iter->second), arg_count);
+				}
+				else if (arg_count != 0)
+				{
+					runtime_error(std::format("Expected 0 arguments but got {}", arg_count).c_str());
+					return false;
+				}
+
 				return true;
+			}
+			else if (ObjectBoundMethod* bound = dynamic_cast<ObjectBoundMethod*>(callee_object))
+			{
+				// Place the receiver at slot zero of the stack so that we can find it there when executing bound methods
+				vm.stack[vm.stack_position - arg_count - 1] = bound->receiver;
+				return call(bound->method, arg_count);
 			}
 		}
 
 		runtime_error("Can only call functions and classes");
 		return false;
+	}
+
+	bool bind_method(ObjectClass* klass, ObjectString* name)
+	{
+		auto iter = klass->methods.find(name);
+		if (iter == klass->methods.end())
+		{
+			runtime_error(std::format("Undefined property '{}'", name->get_string()).c_str());
+			return false;
+		}
+
+		ObjectBoundMethod* bound = ObjectBoundMethod::allocate(peek(0), as_closure(iter->second));
+		pop();
+		push(bound);
+		return true;
 	}
 
 	ObjectUpvalue* capture_upvalue(Value* local)
@@ -209,6 +243,14 @@ namespace VMImpl
 			upvalue->location = &upvalue->closed;
 			vm.open_upvalues = upvalue->next_upvalue;
 		}
+	}
+
+	void define_method(ObjectString* name)
+	{
+		Value method = peek(0);
+		ObjectClass* klass = as_class(peek(1));
+		klass->methods[name] = method;
+		pop();	  // Pop the closure, we don't need it on the stack anymore
 	}
 
 	InterpretResult run()
@@ -364,8 +406,11 @@ namespace VMImpl
 						break;
 					}
 
-					runtime_error(std::format("Undefined property '{}'", prop_name->get_string()).c_str());
-					return InterpretResult::RUNTIME_ERROR;
+					if (!bind_method(instance->klass, prop_name))
+					{
+						return InterpretResult::RUNTIME_ERROR;
+					}
+					break;
 				}
 				case Op::SET_PROPERTY:
 				{
@@ -577,6 +622,11 @@ namespace VMImpl
 					push(klass);
 					break;
 				}
+				case Op::METHOD:
+				{
+					define_method(as_string(read_constant(frame)));
+					break;
+				}
 				default:
 				{
 					assert(false);
@@ -591,6 +641,9 @@ void Lox::init_VM()
 	using namespace VMImpl;
 
 	reset_stack();
+
+	vm.init_string = nullptr;	 // Zero this out because ObjectString::allocate may trigger GC and try to read garbage from this
+	vm.init_string = ObjectString::allocate("init");
 
 	define_native("clock", clock_native);
 }
@@ -630,7 +683,8 @@ Lox::InterpretResult Lox::interpret(const char* source)
 
 void Lox::free_VM()
 {
-	free_objects();
 	vm.strings.clear();
 	vm.globals.clear();
+	vm.init_string = nullptr;
+	free_objects();
 }

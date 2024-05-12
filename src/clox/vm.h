@@ -47,6 +47,7 @@ namespace Lox
 		// TODO: Using Lox::Map here is troublesome because we don't want to run garbage collection and
 		// try traversing the map *while it is allocating internal nodes*, as that seems to crash
 		std::unordered_map<Lox::String, Lox::ObjectString*> strings;
+		Lox::ObjectString* init_string = nullptr;
 
 		ObjectUpvalue* open_upvalues = nullptr;
 

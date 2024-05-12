@@ -40,7 +40,8 @@ namespace Lox
 		CLOSURE,
 		CLOSE_UPVALUE,
 		RETURN,
-		CLASS
+		CLASS,
+		METHOD
 	};
 
 	class Chunk

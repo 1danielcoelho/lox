@@ -63,8 +63,10 @@ namespace CompilerImpl
 
 	enum class FunctionType : u8
 	{
-		FUNCTION,	 // Compiling a function body
-		SCRIPT		 // Compiling top-level code
+		FUNCTION,		// Compiling a function body
+		INITIALIZER,	// Compiling an 'init' method
+		METHOD,			// Compiling a class method
+		SCRIPT			// Compiling top-level code
 	};
 
 	struct Compiler
@@ -79,9 +81,15 @@ namespace CompilerImpl
 		i32 scope_depth = 0;
 	};
 
+	struct ClassCompiler
+	{
+		ClassCompiler* enclosing = nullptr;
+	};
+
 	Parser parser;
 	Chunk* compiling_chunk;
 	Compiler* current_compiler = nullptr;
+	ClassCompiler* current_class = nullptr;	   // Current, innermost class being compiled
 
 	const ParseRule* get_rule(TokenType type);
 	void expression();
@@ -118,8 +126,16 @@ namespace CompilerImpl
 		Local* local = &current_compiler->locals[current_compiler->local_count++];
 		local->depth = 0;
 		local->is_captured = false;
-		local->name.start = "";
-		local->name.length = 0;
+		if (type != FunctionType::FUNCTION)
+		{
+			local->name.start = "this";
+			local->name.length = 4;
+		}
+		else
+		{
+			local->name.start = "";
+			local->name.length = 0;
+		}
 	}
 
 	void error_at(Token* token, const char* message)
@@ -342,7 +358,16 @@ namespace CompilerImpl
 
 	void emit_return()
 	{
-		emit_byte((u8)Op::NIL);
+		if (current_compiler->type == FunctionType::INITIALIZER)
+		{
+			emit_bytes((u8)Op::GET_LOCAL, 0);	 // The class instance is at slot zero on the method's call frame
+		}
+		else
+		{
+			// Note: If we do have something to return, we don't actually call emit_return() and just return it right away...
+			emit_byte((u8)Op::NIL);
+		}
+
 		emit_byte((u8)Op::RETURN);
 	}
 
@@ -616,6 +641,17 @@ namespace CompilerImpl
 		named_variable(parser.previous, can_assign);
 	}
 
+	void this_([[maybe_unused]] bool can_assign)
+	{
+		if (current_class == nullptr)
+		{
+			error("Can't use 'this' outside of a class");
+			return;
+		}
+
+		variable(false);
+	}
+
 	// Will parse all expressions at 'prec' level or higher (higher value, so CALL > UNARY)
 	void parse_precedence(Precedence prec)
 	{
@@ -710,7 +746,7 @@ namespace CompilerImpl
 		result[(u8)TokenType::PRINT]         = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::RETURN]        = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::SUPER]         = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::THIS]          = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::THIS]          = {this_,    nullptr,  Precedence::NONE};
 		result[(u8)TokenType::TRUE]          = {literal,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::VAR]           = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::WHILE]         = {nullptr,  nullptr,  Precedence::NONE};
@@ -892,6 +928,11 @@ namespace CompilerImpl
 		}
 		else
 		{
+			if (current_compiler->type == FunctionType::INITIALIZER)
+			{
+				error("Can't return a value from an initializer");
+			}
+
 			expression();
 			consume(TokenType::SEMICOLON, "Expected ';' after return value");
 			emit_byte((u8)Op::RETURN);
@@ -945,17 +986,48 @@ namespace CompilerImpl
 		}
 	}
 
+	void method()
+	{
+		consume(TokenType::IDENTIFIER, "Expected method name");
+		u8 method_name_index = identifier_constant(parser.previous);
+
+		FunctionType type = FunctionType::METHOD;
+		if (parser.previous.length == 4 && memcmp(parser.previous.start, "init", 4) == 0)
+		{
+			type = FunctionType::INITIALIZER;
+		}
+		function(type);
+
+		emit_bytes((u8)Op::METHOD, method_name_index);
+	}
+
 	void class_declaration()
 	{
 		consume(TokenType::IDENTIFIER, "Expected class name");
+		Token class_name = parser.previous;
 		u8 name_index = identifier_constant(parser.previous);
 		declare_variable();
 
 		emit_bytes((u8)Op::CLASS, name_index);
 		define_variable(name_index);
 
+		ClassCompiler class_compiler;
+		class_compiler.enclosing = current_class;
+		current_class = &class_compiler;	// Note how we keep and hoist a reference to a stack variable here, which works since the parser uses
+											// recursive descent
+
+		// Emit code to load the class onto the stack so that it can be used for the 'method' calls
+		named_variable(class_name, false);
+
 		consume(TokenType::LEFT_BRACE, "Expected '{' before class body");
+		while (!check(TokenType::RIGHT_BRACE) && !check(TokenType::EOF_))
+		{
+			method();
+		}
 		consume(TokenType::RIGHT_BRACE, "Expected '}' after class body");
+		emit_byte((u8)Op::POP);	   // Pop the class itself off the stack
+
+		current_class = current_class->enclosing;
 	}
 
 	void begin_scope()

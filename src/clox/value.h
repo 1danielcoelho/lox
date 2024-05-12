@@ -15,6 +15,7 @@ namespace Lox
 	class ObjectNativeFunction;
 	class ObjectClass;
 	class ObjectInstance;
+	class ObjectBoundMethod;
 
 	using Value = std::variant<bool, nullptr_t, f64, Object*>;
 
@@ -28,6 +29,7 @@ namespace Lox
 	bool is_native(const Lox::Value& val);
 	bool is_class(const Lox::Value& val);
 	bool is_instance(const Lox::Value& val);
+	bool is_bound_method(const Lox::Value& val);
 
 	f64 as_number(const Lox::Value& val);
 	bool as_bool(const Lox::Value& val);
@@ -38,6 +40,7 @@ namespace Lox
 	ObjectNativeFunction* as_native(const Lox::Value& val);
 	ObjectClass* as_class(const Lox::Value& val);
 	ObjectInstance* as_instance(const Lox::Value& val);
+	ObjectBoundMethod* as_bound_method(const Lox::Value& val);
 
 	bool values_equal(const Value& left, const Value& right);
 	Lox::String to_string(const Value& value);

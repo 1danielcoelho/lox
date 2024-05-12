@@ -240,3 +240,30 @@ Lox::String Lox::ObjectInstance::to_string() const
 {
 	return Lox::String{std::format("{} instance", klass->to_string())};
 }
+
+Lox::ObjectBoundMethod* Lox::ObjectBoundMethod::allocate(Value receiver, ObjectClosure* method)
+{
+	Lox::ObjectBoundMethod* bound = ObjectImpl::allocate<Lox::ObjectBoundMethod>(receiver, method);
+	return bound;
+}
+
+void Lox::ObjectBoundMethod::free(ObjectBoundMethod* instance)
+{
+	ObjectImpl::free<ObjectBoundMethod>(instance);
+}
+
+Lox::ObjectBoundMethod::ObjectBoundMethod(Value in_receiver, ObjectClosure* in_method)
+	: receiver(in_receiver)
+	, method(in_method)
+{
+}
+
+void Lox::ObjectBoundMethod::free()
+{
+	Lox::ObjectBoundMethod::free(this);
+}
+
+Lox::String Lox::ObjectBoundMethod::to_string() const
+{
+	return method->function->to_string();
+}

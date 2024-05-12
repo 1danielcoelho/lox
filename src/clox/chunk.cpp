@@ -199,6 +199,11 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			return print_constant_instruction("CLASS", offset);
 			break;
 		}
+		case Lox::Op::METHOD:
+		{
+			return print_constant_instruction("METHOD", offset);
+			break;
+		}
 		default:
 		{
 			std::cout << "Unknown opcode " << (u8)instruction << std::endl;

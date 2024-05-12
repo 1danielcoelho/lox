@@ -83,6 +83,16 @@ bool Lox::is_instance(const Lox::Value& val)
 	return false;
 }
 
+bool Lox::is_bound_method(const Lox::Value& val)
+{
+	if (is_object(val))
+	{
+		return as_bound_method(val);
+	}
+
+	return false;
+}
+
 f64 Lox::as_number(const Lox::Value& val)
 {
 	return std::get<f64>(val);
@@ -127,6 +137,11 @@ Lox::ObjectClass* Lox::as_class(const Lox::Value& val)
 Lox::ObjectInstance* Lox::as_instance(const Lox::Value& val)
 {
 	return dynamic_cast<Lox::ObjectInstance*>(as_object(val));
+}
+
+Lox::ObjectBoundMethod* Lox::as_bound_method(const Lox::Value& val)
+{
+	return dynamic_cast<Lox::ObjectBoundMethod*>(as_object(val));
 }
 
 bool Lox::values_equal(const Lox::Value& left_val, const Lox::Value& right_val)

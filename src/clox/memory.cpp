@@ -35,6 +35,7 @@ namespace MemoryImpl
 		}
 
 		mark_compiler_roots();
+		mark_object(vm.init_string);
 	}
 
 	void blacken_object(Object* object)
@@ -66,6 +67,11 @@ namespace MemoryImpl
 		else if (ObjectClass* klass = dynamic_cast<ObjectClass*>(object))
 		{
 			mark_object(klass->name);
+			for (const auto& [str, val] : klass->methods)
+			{
+				mark_object(str);
+				mark_value(val);
+			}
 		}
 		else if (ObjectInstance* instance = dynamic_cast<ObjectInstance*>(object))
 		{
@@ -75,6 +81,11 @@ namespace MemoryImpl
 				mark_object(str);
 				mark_value(val);
 			}
+		}
+		else if (ObjectBoundMethod* bound = dynamic_cast<ObjectBoundMethod*>(object))
+		{
+			mark_value(bound->receiver);
+			mark_object(bound->method);
 		}
 	}
 
