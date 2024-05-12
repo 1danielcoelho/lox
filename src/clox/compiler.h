@@ -6,4 +6,5 @@ namespace Lox
 	class ObjectFunction;
 
 	ObjectFunction* compile(const char* source);
+	void mark_compiler_roots();
 }

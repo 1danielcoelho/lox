@@ -45,7 +45,12 @@ namespace Lox
 		ObjectUpvalue* open_upvalues = nullptr;
 
 		// Global variables stored by hash of the name string
+		// TODO: I think this should have had a Lox::ObjectString as key?
+		// But then again it's always marked as a root anyway and Lox::ObjectString doesn't reference any other object... so maybe not?
 		Lox::Map<Lox::String, Lox::Value> globals;
+
+		// vector and not Lox::Vec as the garbage collector shouldn't manage this
+		std::vector<Lox::Object*> gray_stack;
 	};
 
 	extern VM vm;

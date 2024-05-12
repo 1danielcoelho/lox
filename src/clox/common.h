@@ -37,7 +37,3 @@ namespace Lox
 		std::equal_to<TKey>,
 		Lox::TrackingAllocator<std::pair<const TKey, TVal>>>;
 }
-
-#define DEBUG_TRACE_EXECUTION 0
-#define DEBUG_PRINT_CODE 0
-#define DEBUG_STRESS_GC 1

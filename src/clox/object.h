@@ -10,10 +10,12 @@ namespace Lox
 	class Object
 	{
 	public:
+		bool is_marked = false;
 		Object* next = nullptr;
 
 	public:
 		virtual ~Object(){};
+		virtual void free() = 0;	// So that we can free an instance polymorphically, likely a bad idea...
 		virtual Lox::String to_string() const;
 	};
 
@@ -27,6 +29,7 @@ namespace Lox
 
 		ObjectString(const Lox::String& string);
 		virtual ~ObjectString() override;
+		virtual void free() override;
 
 		virtual Lox::String to_string() const override;
 		const Lox::String& get_string() const;
@@ -47,6 +50,8 @@ namespace Lox
 		static ObjectFunction* allocate();
 		static void free(ObjectFunction* instance);
 
+		virtual void free() override;
+
 		virtual Lox::String to_string() const override;
 	};
 
@@ -62,6 +67,7 @@ namespace Lox
 		static void free(ObjectUpvalue* instance);
 
 		ObjectUpvalue(Value* slot);
+		virtual void free() override;
 
 		virtual Lox::String to_string() const override;
 	};
@@ -77,6 +83,7 @@ namespace Lox
 		static void free(ObjectClosure* instance);
 
 		ObjectClosure(ObjectFunction* function);
+		virtual void free() override;
 
 		virtual Lox::String to_string() const override;
 	};
@@ -92,6 +99,7 @@ namespace Lox
 		static void free(ObjectNativeFunction* instance);
 
 		ObjectNativeFunction(NativeFn function);
+		virtual void free() override;
 
 		virtual Lox::String to_string() const override;
 	};

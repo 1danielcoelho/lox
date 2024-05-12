@@ -15,7 +15,6 @@ namespace ObjectImpl
 		u8* buf = allocator.allocate(sizeof(T));
 		T* object = new (buf) T(std::forward<Args>(args)...);
 
-		// TODO: Do we still need these?
 		object->next = Lox::vm.objects;
 		Lox::vm.objects = object;
 
@@ -64,6 +63,11 @@ Lox::ObjectString::~ObjectString()
 	vm.strings.erase(string);
 }
 
+void Lox::ObjectString::free()
+{
+	Lox::ObjectString::free(this);
+}
+
 Lox::String Lox::ObjectString::to_string() const
 {
 	return string;
@@ -86,6 +90,11 @@ Lox::ObjectFunction* Lox::ObjectFunction::allocate()
 void Lox::ObjectFunction::free(ObjectFunction* instance)
 {
 	ObjectImpl::free<Lox::ObjectFunction>(instance);
+}
+
+void Lox::ObjectFunction::free()
+{
+	Lox::ObjectFunction::free(this);
 }
 
 Lox::String Lox::ObjectFunction::to_string() const
@@ -112,6 +121,11 @@ Lox::ObjectUpvalue::ObjectUpvalue(Value* in_slot)
 {
 }
 
+void Lox::ObjectUpvalue::free()
+{
+	Lox::ObjectUpvalue::free(this);
+}
+
 Lox::String Lox::ObjectUpvalue::to_string() const
 {
 	return "upvalue";
@@ -135,6 +149,11 @@ Lox::ObjectClosure::ObjectClosure(ObjectFunction* in_function)
 {
 }
 
+void Lox::ObjectClosure::free()
+{
+	Lox::ObjectClosure::free(this);
+}
+
 Lox::String Lox::ObjectClosure::to_string() const
 {
 	return function->to_string();
@@ -154,6 +173,11 @@ void Lox::ObjectNativeFunction::free(ObjectNativeFunction* instance)
 Lox::ObjectNativeFunction::ObjectNativeFunction(NativeFn in_function)
 	: function(in_function)
 {
+}
+
+void Lox::ObjectNativeFunction::free()
+{
+	Lox::ObjectNativeFunction::free(this);
 }
 
 Lox::String Lox::ObjectNativeFunction::to_string() const

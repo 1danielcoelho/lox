@@ -1,5 +1,6 @@
 #include "compiler.h"
 #include "chunk.h"
+#include "memory.h"
 #include "object.h"
 #include "scanner.h"
 
@@ -1157,4 +1158,16 @@ Lox::ObjectFunction* Lox::compile(const char* source)
 
 	ObjectFunction* function = end_compiler();
 	return parser.had_error ? nullptr : function;
+}
+
+void Lox::mark_compiler_roots()
+{
+	using namespace CompilerImpl;
+
+	Compiler* compiler = current_compiler;
+	while (compiler != nullptr)
+	{
+		mark_object(compiler->function);
+		compiler = compiler->enclosing;
+	}
 }

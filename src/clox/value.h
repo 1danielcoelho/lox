@@ -14,9 +14,6 @@ namespace Lox
 	class ObjectClosure;
 	class ObjectNativeFunction;
 
-	// TODO: I think we could just use a std::shared_ptr<Object> here but
-	// I don't know where he's going with the garbage collector stuff so I'll just
-	// pass around a naked ptr
 	using Value = std::variant<bool, nullptr_t, f64, Object*>;
 
 	bool is_number(const Lox::Value& val);
