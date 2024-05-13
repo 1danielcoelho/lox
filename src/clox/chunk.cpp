@@ -98,6 +98,10 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 			return print_constant_instruction("SET_PROPERTY", offset);
 			break;
 		}
+		case Lox::Op::GET_SUPER:
+		{
+			return print_constant_instruction("GET_SUPER", offset);
+		}
 		case Lox::Op::EQUAL:
 		{
 			return print_simple_instruction("EQUAL", offset);
@@ -171,6 +175,10 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 		{
 			return print_invoke_instruction("INVOKE", offset);
 		}
+		case Lox::Op::SUPER_INVOKE:
+		{
+			return print_invoke_instruction("SUPER_INVOKE", offset);
+		}
 		case Lox::Op::CLOSURE:
 		{
 			offset++;
@@ -202,6 +210,10 @@ i32 Lox::Chunk::disassemble_instruction(i32 offset) const
 		{
 			return print_constant_instruction("CLASS", offset);
 			break;
+		}
+		case Lox::Op::INHERIT:
+		{
+			return print_simple_instruction("INHERIT", offset);
 		}
 		case Lox::Op::METHOD:
 		{

@@ -462,6 +462,17 @@ namespace VMImpl
 					push(value);
 					break;
 				}
+				case Op::GET_SUPER:
+				{
+					ObjectString* name = as_string(read_constant(frame));
+					ObjectClass* superclass = as_class(pop());
+
+					if (!bind_method(superclass, name))
+					{
+						return InterpretResult::RUNTIME_ERROR;
+					}
+					break;
+				}
 				case Op::EQUAL:
 				{
 					Value b = pop();
@@ -617,6 +628,20 @@ namespace VMImpl
 					frame = &vm.frames[vm.frames_position - 1];
 					break;
 				}
+				case Op::SUPER_INVOKE:
+				{
+					ObjectString* method_name = as_string(read_constant(frame));
+					i32 arg_count = read_byte(frame);
+
+					ObjectClass* superclass = as_class(pop());
+					if (!invoke_from_class(superclass, method_name, arg_count))
+					{
+						return InterpretResult::RUNTIME_ERROR;
+					}
+
+					frame = &vm.frames[vm.frames_position - 1];
+					break;
+				}
 				case Op::CLOSURE:
 				{
 					ObjectFunction* function = as_function(read_constant(frame));
@@ -669,6 +694,28 @@ namespace VMImpl
 					Lox::ObjectString* name = as_string(val);
 					Lox::ObjectClass* klass = Lox::ObjectClass::allocate(name);
 					push(klass);
+					break;
+				}
+				case Op::INHERIT:
+				{
+					Value superclass = peek(1);
+					if (!is_class(superclass))
+					{
+						runtime_error("Superclass must be a class");
+						return InterpretResult::RUNTIME_ERROR;
+					}
+
+					ObjectClass* subclass = as_class(peek(0));
+
+					// TODO: I think I can just copy the entire map directly here as the
+					// subclass' method table should be empty at this point? I'll wait to see
+					// where the book goes though
+					for (const auto& [key, val] : as_class(superclass)->methods)
+					{
+						subclass->methods[key] = val;
+					}
+
+					pop();	  // subclass
 					break;
 				}
 				case Op::METHOD:

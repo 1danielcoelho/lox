@@ -23,6 +23,7 @@ namespace Lox
 		SET_UPVALUE,
 		GET_PROPERTY,
 		SET_PROPERTY,
+		GET_SUPER,
 		EQUAL,
 		GREATER,
 		LESS,
@@ -38,10 +39,12 @@ namespace Lox
 		LOOP,
 		CALL,
 		INVOKE,
+		SUPER_INVOKE,
 		CLOSURE,
 		CLOSE_UPVALUE,
 		RETURN,
 		CLASS,
+		INHERIT,
 		METHOD
 	};
 

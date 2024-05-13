@@ -84,6 +84,7 @@ namespace CompilerImpl
 	struct ClassCompiler
 	{
 		ClassCompiler* enclosing = nullptr;
+		bool has_superclass = false;
 	};
 
 	Parser parser;
@@ -105,6 +106,7 @@ namespace CompilerImpl
 	u8 parse_variable(const char* error_message);
 	void declare_variable();
 	void define_variable(u8 global_index);
+	void add_local(const Token& var_name);
 
 	void init_compiler(Compiler* compiler, FunctionType type)
 	{
@@ -647,6 +649,44 @@ namespace CompilerImpl
 		named_variable(parser.previous, can_assign);
 	}
 
+	Token synthetic_token(const char* text)
+	{
+		Token token;
+		token.start = text;
+		token.length = (i32)strlen(text);
+		return token;
+	}
+
+	void super_([[maybe_unused]] bool can_assign)
+	{
+		if (current_class == nullptr)
+		{
+			error("Can't user 'super' outside of a class");
+		}
+		else if (!current_class->has_superclass)
+		{
+			error("Can't user 'super' in a class with no superclass");
+		}
+
+		consume(TokenType::DOT, "Expected '.' after 'super'");
+		consume(TokenType::IDENTIFIER, "Expected superclass method name");
+		u8 name = identifier_constant(parser.previous);
+
+		named_variable(synthetic_token("this"), false);
+		if(match(TokenType::LEFT_PAREN))
+		{
+			u8 arg_count = argument_list();
+			named_variable(synthetic_token("super"), false);
+			emit_bytes((u8)Op::SUPER_INVOKE, name);
+			emit_byte(arg_count);
+		}
+		else
+		{
+			named_variable(synthetic_token("super"), false);
+			emit_bytes((u8)Op::GET_SUPER, name);
+		}
+	}
+
 	void this_([[maybe_unused]] bool can_assign)
 	{
 		if (current_class == nullptr)
@@ -751,7 +791,7 @@ namespace CompilerImpl
 		result[(u8)TokenType::OR]            = {nullptr,  or_,  	Precedence::OR};
 		result[(u8)TokenType::PRINT]         = {nullptr,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::RETURN]        = {nullptr,  nullptr,  Precedence::NONE};
-		result[(u8)TokenType::SUPER]         = {nullptr,  nullptr,  Precedence::NONE};
+		result[(u8)TokenType::SUPER]         = {super_,   nullptr,  Precedence::NONE};
 		result[(u8)TokenType::THIS]          = {this_,    nullptr,  Precedence::NONE};
 		result[(u8)TokenType::TRUE]          = {literal,  nullptr,  Precedence::NONE};
 		result[(u8)TokenType::VAR]           = {nullptr,  nullptr,  Precedence::NONE};
@@ -1022,6 +1062,27 @@ namespace CompilerImpl
 		current_class = &class_compiler;	// Note how we keep and hoist a reference to a stack variable here, which works since the parser uses
 											// recursive descent
 
+		if (match(TokenType::LESS))
+		{
+			consume(TokenType::IDENTIFIER, "Expected superclass name");
+			variable(false);	// Load superclass' name onto the stack
+
+			if (identifiers_equal(class_name, parser.previous))
+			{
+				error("A class can't inherit from itself");
+			}
+
+			// Store a reference to the superclass for 'super' calls
+			// Within it's own scope so each class can have a variable named 'super'
+			begin_scope();
+			add_local(synthetic_token("super"));
+			define_variable(0);
+
+			named_variable(class_name, false);	  // Load superclass' actual object onto the stack
+			emit_byte((u8)Op::INHERIT);
+			class_compiler.has_superclass = true;
+		}
+
 		// Emit code to load the class onto the stack so that it can be used for the 'method' calls
 		named_variable(class_name, false);
 
@@ -1032,6 +1093,11 @@ namespace CompilerImpl
 		}
 		consume(TokenType::RIGHT_BRACE, "Expected '}' after class body");
 		emit_byte((u8)Op::POP);	   // Pop the class itself off the stack
+
+		if (class_compiler.has_superclass)
+		{
+			end_scope();
+		}
 
 		current_class = current_class->enclosing;
 	}
